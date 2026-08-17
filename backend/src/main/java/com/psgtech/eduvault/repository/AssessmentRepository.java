@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AssessmentRepository extends JpaRepository<Assessment, Long> {
+    java.util.List<Assessment> findByClassroomIdInAndPublishedAtIsNotNull(java.util.List<Long> classroomIds);
 }

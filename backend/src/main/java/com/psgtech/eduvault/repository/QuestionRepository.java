@@ -6,4 +6,6 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface QuestionRepository extends JpaRepository<Question, Long> {
+    java.util.List<Question> findByAssessmentIdOrderByOrderIndexAsc(Long assessmentId);
+    int countByAssessmentId(Long assessmentId);
 }

@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface McqOptionRepository extends JpaRepository<McqOption, Long> {
+    java.util.List<McqOption> findByQuestionId(Long questionId);
 }

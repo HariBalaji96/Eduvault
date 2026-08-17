@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface DescriptiveModelAnswerRepository extends JpaRepository<DescriptiveModelAnswer, Long> {
+    java.util.Optional<DescriptiveModelAnswer> findByQuestionId(Long questionId);
 }
