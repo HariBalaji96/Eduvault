@@ -20,8 +20,8 @@ public class CodeExecution extends Auditable {
     private User student;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "practice_problem_id")
-    private PracticeProblem practiceProblem;
+    @JoinColumn(name = "question_id")
+    private Question question;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "submission_id")
@@ -36,6 +36,15 @@ public class CodeExecution extends Auditable {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private ExecutionStatus status;
+
+    private Integer passedCount;
+    private Integer totalCount;
+
+    @Column(nullable = false)
+    private boolean compiled;
+
+    @Column(columnDefinition = "TEXT")
+    private String compileError;
 
     private LocalDateTime executedAt;
 }

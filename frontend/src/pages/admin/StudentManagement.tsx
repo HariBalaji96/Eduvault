@@ -3,24 +3,32 @@ import client from '../../api/client';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import Papa from 'papaparse';
-import { Plus, Upload, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Upload, CheckCircle2, XCircle, Edit2, Trash2, Power } from 'lucide-react';
 
 interface Student {
     id: number;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     active: boolean;
     createdAt: string;
+    schoolClassId?: number;
+    schoolClassName?: string;
 }
 
 const StudentManagement: React.FC = () => {
     const [students, setStudents] = useState<Student[]>([]);
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [isBulkModalOpen, setBulkModalOpen] = useState(false);
+    const [isEditModalOpen, setEditModalOpen] = useState(false);
+    const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
     
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [schoolClassId, setSchoolClassId] = useState<number | ''>('');
+    const [schoolClasses, setSchoolClasses] = useState<any[]>([]);
     
     const [bulkData, setBulkData] = useState<any[]>([]);
     const [bulkReport, setBulkReport] = useState<any>(null);
@@ -35,18 +43,74 @@ const StudentManagement: React.FC = () => {
         }
     };
 
-    useEffect(() => { fetchStudents(); }, []);
+    const fetchClasses = async () => {
+        try {
+            const res = await client.get('/admin/classes');
+            setSchoolClasses(res.data);
+        } catch (err) {
+            console.error("Failed to fetch classes", err);
+        }
+    };
+
+    useEffect(() => { 
+        fetchStudents(); 
+        fetchClasses();
+    }, []);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await client.post('/admin/students', { name, email, password });
+            await client.post('/admin/students', { name: `${firstName} ${lastName}`.trim(), email, password, schoolClassId: schoolClassId === '' ? null : schoolClassId });
             setCreateModalOpen(false);
-            setName(''); setEmail(''); setPassword('');
+            setFirstName(''); setLastName(''); setEmail(''); setPassword(''); setSchoolClassId('');
             fetchStudents();
         } catch (err) {
             console.error("Create failed", err);
             alert("Creation failed. Email might exist.");
+        }
+    };
+
+    const handleEditClick = (student: Student) => {
+        setEditingStudentId(student.id);
+        setFirstName(student.firstName || '');
+        setLastName(student.lastName || '');
+        setEmail(student.email);
+        setPassword('');
+        setSchoolClassId(student.schoolClassId || '');
+        setEditModalOpen(true);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await client.put(`/admin/students/${editingStudentId}`, { name: `${firstName} ${lastName}`.trim(), email, password, schoolClassId: schoolClassId === '' ? null : schoolClassId });
+            setEditModalOpen(false);
+            setFirstName(''); setLastName(''); setEmail(''); setPassword(''); setSchoolClassId(''); setEditingStudentId(null);
+            fetchStudents();
+        } catch (err) {
+            console.error("Edit failed", err);
+            alert("Edit failed.");
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!window.confirm("Are you sure you want to delete this student?")) return;
+        try {
+            await client.delete(`/admin/students/${id}`);
+            fetchStudents();
+        } catch (err) {
+            console.error("Delete failed", err);
+            alert("Delete failed. They might be linked to existing records.");
+        }
+    };
+
+    const handleToggleStatus = async (student: Student) => {
+        try {
+            await client.patch(`/admin/students/${student.id}/status`, { active: !student.active });
+            fetchStudents();
+        } catch (err) {
+            console.error("Status update failed", err);
+            alert("Failed to update status.");
         }
     };
 
@@ -79,14 +143,24 @@ const StudentManagement: React.FC = () => {
 
     const columns = [
         { header: 'ID', accessor: 'id' as keyof Student },
-        { header: 'Name', accessor: 'name' as keyof Student },
+        { header: 'Name', accessor: (row: Student) => `${row.firstName} ${row.lastName}`.trim() },
         { header: 'Email', accessor: 'email' as keyof Student },
+        { header: 'Class', accessor: (row: Student) => row.schoolClassName || '-' },
         { header: 'Status', accessor: (row: Student) => (
             <span className={`px-2 py-1 text-xs rounded-full ${row.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                 {row.active ? 'Active' : 'Inactive'}
             </span>
         ) },
         { header: 'Joined', accessor: (row: Student) => new Date(row.createdAt).toLocaleDateString() },
+        { header: 'Actions', accessor: (row: Student) => (
+            <div className="flex gap-2">
+                <button onClick={() => handleToggleStatus(row)} title={row.active ? "Deactivate" : "Activate"} className={`${row.active ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-gray-600'}`}>
+                    <Power size={16} />
+                </button>
+                <button onClick={() => handleEditClick(row)} title="Edit" className="text-blue-600 hover:text-blue-800"><Edit2 size={16} /></button>
+                <button onClick={() => handleDelete(row.id)} title="Delete" className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
+            </div>
+        ) },
     ];
 
     return (
@@ -107,9 +181,15 @@ const StudentManagement: React.FC = () => {
 
             <Modal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} title="Create Student">
                 <form onSubmit={handleCreate} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Name</label>
-                        <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">First Name</label>
+                            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Last Name</label>
+                            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Email</label>
@@ -119,7 +199,49 @@ const StudentManagement: React.FC = () => {
                         <label className="block text-sm font-medium mb-1">Password</label>
                         <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
                     </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Class</label>
+                        <select value={schoolClassId} onChange={e => setSchoolClassId(e.target.value === '' ? '' : Number(e.target.value))} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">Select a class (optional)</option>
+                            {schoolClasses.map((cls) => (
+                                <option key={cls.id} value={cls.id}>{cls.name}</option>
+                            ))}
+                        </select>
+                    </div>
                     <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Create</button>
+                </form>
+            </Modal>
+
+            <Modal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} title="Edit Student">
+                <form onSubmit={handleEditSubmit} className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">First Name</label>
+                            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Last Name</label>
+                            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Email</label>
+                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Password (Leave blank to keep current)</label>
+                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Class</label>
+                        <select value={schoolClassId} onChange={e => setSchoolClassId(e.target.value === '' ? '' : Number(e.target.value))} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600">
+                            <option value="">Select a class (optional)</option>
+                            {schoolClasses.map((cls) => (
+                                <option key={cls.id} value={cls.id}>{cls.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Save Changes</button>
                 </form>
             </Modal>
 

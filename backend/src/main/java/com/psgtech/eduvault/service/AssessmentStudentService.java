@@ -21,6 +21,8 @@ public class AssessmentStudentService {
     private final QuestionRepository questionRepository;
     private final McqOptionRepository mcqOptionRepository;
     private final AnswerResponseRepository answerResponseRepository;
+    private final CodeExecutionService codeExecutionService;
+    private final CodingTestCaseRepository codingTestCaseRepository;
 
     @Transactional(readOnly = true)
     public List<StudentAssessmentListDTO> getPublishedAssessments(User student) {
@@ -176,6 +178,53 @@ public class AssessmentStudentService {
         submission.setSubmittedAt(LocalDateTime.now());
         submission.setTotalScore(mcqTotalScore); // This will only be MCQ score initially
         submissionRepository.save(submission);
+    }
+
+    @Transactional
+    public CodeExecutionResultDTO runCode(Long submissionId, Long questionId, CodeSubmitRequest dto, User student) {
+        Submission submission = submissionRepository.findById(submissionId).orElseThrow(() -> new RuntimeException("Submission not found"));
+        if (!submission.getStudent().getId().equals(student.getId()) || submission.getStatus() != SubmissionStatus.IN_PROGRESS) {
+            throw new RuntimeException("Unauthorized or submission not in progress");
+        }
+        Question question = questionRepository.findById(questionId).orElseThrow(() -> new RuntimeException("Question not found"));
+        
+        List<CodingTestCase> visibleCases = codingTestCaseRepository.findByQuestionIdAndIsHiddenFalse(questionId);
+        
+        return codeExecutionService.execute(student, question, dto.getLanguage(), dto.getCode(), visibleCases);
+    }
+
+    @Transactional
+    public CodeExecutionResultDTO submitCode(Long submissionId, Long questionId, CodeSubmitRequest dto, User student) {
+        Submission submission = submissionRepository.findById(submissionId).orElseThrow(() -> new RuntimeException("Submission not found"));
+        if (!submission.getStudent().getId().equals(student.getId()) || submission.getStatus() != SubmissionStatus.IN_PROGRESS) {
+            throw new RuntimeException("Unauthorized or submission not in progress");
+        }
+        Question question = questionRepository.findById(questionId).orElseThrow(() -> new RuntimeException("Question not found"));
+        
+        List<CodingTestCase> allCases = codingTestCaseRepository.findByQuestionId(questionId);
+        
+        CodeExecutionResultDTO result = codeExecutionService.execute(student, question, dto.getLanguage(), dto.getCode(), allCases);
+        
+        AnswerResponse answer = answerResponseRepository.findBySubmissionIdAndQuestionId(submissionId, questionId)
+                .orElse(new AnswerResponse());
+        
+        if (answer.getId() == null) {
+            answer.setSubmission(submission);
+            answer.setQuestion(question);
+        }
+        
+        answer.setCodeSubmitted(dto.getCode());
+        
+        if (result.isCompiled() && allCases.size() > 0) {
+            long passed = result.getResults().stream().filter(TestCaseResultDTO::isPassed).count();
+            double score = question.getMarks() * ((double) passed / allCases.size());
+            answer.setFinalScore(score);
+        } else {
+            answer.setFinalScore(0.0);
+        }
+        
+        answerResponseRepository.save(answer);
+        return result;
     }
 
     private QuestionStudentDTO mapToQuestionStudentDTO(Question q) {

@@ -10,4 +10,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
     java.util.List<User> findByEmailIn(java.util.List<String> emails);
     java.util.List<User> findByRole(com.psgtech.eduvault.entity.Role role);
+    java.util.List<User> findBySchoolClassIdAndRole(Long schoolClassId, com.psgtech.eduvault.entity.Role role);
 }

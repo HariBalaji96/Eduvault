@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { assessmentApi } from '../../../services/assessmentApi';
+import CodeEditor from '../../../components/CodeEditor';
 
 export default function TakeAssessment() {
     const { id } = useParams();
@@ -100,6 +101,19 @@ export default function TakeAssessment() {
                                         onBlur={(e) => handleDescriptiveBlur(q.id, e.target.value)}
                                     />
                                     <p className="text-xs text-gray-400 mt-2 text-right font-medium">Answer autosaves when you click outside the text box.</p>
+                                </div>
+                            )}
+
+                            {q.type === 'CODING' && (
+                                <div className="mt-6 h-[600px]">
+                                    <CodeEditor
+                                        mode="assessment"
+                                        questionId={q.id}
+                                        submissionId={submissionId!}
+                                        initialCode={answers[q.id]?.codeSubmitted || ''}
+                                        onRun={(code, language) => assessmentApi.runCode(submissionId!, q.id, { language, code })}
+                                        onSubmit={(code, language) => assessmentApi.submitCode(submissionId!, q.id, { language, code })}
+                                    />
                                 </div>
                             )}
                         </div>

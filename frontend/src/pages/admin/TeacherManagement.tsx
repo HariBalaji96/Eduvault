@@ -3,11 +3,12 @@ import client from '../../api/client';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import Papa from 'papaparse';
-import { Plus, Upload, CheckCircle2, XCircle } from 'lucide-react';
+import { Plus, Upload, CheckCircle2, XCircle, Edit2, Trash2, Power } from 'lucide-react';
 
 interface Teacher {
     id: number;
-    name: string;
+    firstName: string;
+    lastName: string;
     email: string;
     active: boolean;
     createdAt: string;
@@ -17,8 +18,11 @@ const TeacherManagement: React.FC = () => {
     const [teachers, setTeachers] = useState<Teacher[]>([]);
     const [isCreateModalOpen, setCreateModalOpen] = useState(false);
     const [isBulkModalOpen, setBulkModalOpen] = useState(false);
+    const [isEditModalOpen, setEditModalOpen] = useState(false);
+    const [editingTeacherId, setEditingTeacherId] = useState<number | null>(null);
     
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     
@@ -40,13 +44,56 @@ const TeacherManagement: React.FC = () => {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await client.post('/admin/teachers', { name, email, password });
+            await client.post('/admin/teachers', { name: `${firstName} ${lastName}`.trim(), email, password });
             setCreateModalOpen(false);
-            setName(''); setEmail(''); setPassword('');
+            setFirstName(''); setLastName(''); setEmail(''); setPassword('');
             fetchTeachers();
         } catch (err) {
             console.error("Create failed", err);
             alert("Creation failed. Email might exist.");
+        }
+    };
+
+    const handleEditClick = (teacher: Teacher) => {
+        setEditingTeacherId(teacher.id);
+        setFirstName(teacher.firstName || '');
+        setLastName(teacher.lastName || '');
+        setEmail(teacher.email);
+        setPassword('');
+        setEditModalOpen(true);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            await client.put(`/admin/teachers/${editingTeacherId}`, { name: `${firstName} ${lastName}`.trim(), email, password });
+            setEditModalOpen(false);
+            setFirstName(''); setLastName(''); setEmail(''); setPassword(''); setEditingTeacherId(null);
+            fetchTeachers();
+        } catch (err) {
+            console.error("Edit failed", err);
+            alert("Edit failed.");
+        }
+    };
+
+    const handleDelete = async (id: number) => {
+        if (!window.confirm("Are you sure you want to delete this teacher?")) return;
+        try {
+            await client.delete(`/admin/teachers/${id}`);
+            fetchTeachers();
+        } catch (err) {
+            console.error("Delete failed", err);
+            alert("Delete failed. They might be linked to existing records.");
+        }
+    };
+
+    const handleToggleStatus = async (teacher: Teacher) => {
+        try {
+            await client.patch(`/admin/teachers/${teacher.id}/status`, { active: !teacher.active });
+            fetchTeachers();
+        } catch (err) {
+            console.error("Status update failed", err);
+            alert("Failed to update status.");
         }
     };
 
@@ -79,7 +126,7 @@ const TeacherManagement: React.FC = () => {
 
     const columns = [
         { header: 'ID', accessor: 'id' as keyof Teacher },
-        { header: 'Name', accessor: 'name' as keyof Teacher },
+        { header: 'Name', accessor: (row: Teacher) => `${row.firstName} ${row.lastName}`.trim() },
         { header: 'Email', accessor: 'email' as keyof Teacher },
         { header: 'Status', accessor: (row: Teacher) => (
             <span className={`px-2 py-1 text-xs rounded-full ${row.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -87,6 +134,15 @@ const TeacherManagement: React.FC = () => {
             </span>
         ) },
         { header: 'Joined', accessor: (row: Teacher) => new Date(row.createdAt).toLocaleDateString() },
+        { header: 'Actions', accessor: (row: Teacher) => (
+            <div className="flex gap-2">
+                <button onClick={() => handleToggleStatus(row)} title={row.active ? "Deactivate" : "Activate"} className={`${row.active ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-gray-600'}`}>
+                    <Power size={16} />
+                </button>
+                <button onClick={() => handleEditClick(row)} title="Edit" className="text-blue-600 hover:text-blue-800"><Edit2 size={16} /></button>
+                <button onClick={() => handleDelete(row.id)} title="Delete" className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
+            </div>
+        ) },
     ];
 
     return (
@@ -107,9 +163,15 @@ const TeacherManagement: React.FC = () => {
 
             <Modal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} title="Create Teacher">
                 <form onSubmit={handleCreate} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Name</label>
-                        <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">First Name</label>
+                            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Last Name</label>
+                            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Email</label>
@@ -120,6 +182,30 @@ const TeacherManagement: React.FC = () => {
                         <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
                     </div>
                     <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Create</button>
+                </form>
+            </Modal>
+
+            <Modal isOpen={isEditModalOpen} onClose={() => setEditModalOpen(false)} title="Edit Teacher">
+                <form onSubmit={handleEditSubmit} className="space-y-4">
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">First Name</label>
+                            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Last Name</label>
+                            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Email</label>
+                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Password (Leave blank to keep current)</label>
+                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                    </div>
+                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Save Changes</button>
                 </form>
             </Modal>
 

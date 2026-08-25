@@ -15,4 +15,5 @@ public class ClassroomResponse {
     private String schoolClassName;
     private Long createdById;
     private String createdByName;
+    private java.time.LocalDateTime createdAt;
 }

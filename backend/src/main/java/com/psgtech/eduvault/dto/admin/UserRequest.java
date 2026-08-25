@@ -15,6 +15,7 @@ public class UserRequest {
     @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank(message = "Password cannot be blank")
     private String password;
+
+    private Long schoolClassId;
 }

@@ -1,75 +1,90 @@
-import api from './api';
+import api from '../api/client';
 
 export const assessmentApi = {
   // Teacher Endpoints
   createAssessment: async (data: { title: string; classroomId: number; totalMarks: number; deadline: string }) => {
-    const response = await api.post('/api/teacher/assessments', data);
+    const response = await api.post('/teacher/assessments', data);
     return response.data;
   },
   
   addMcqQuestion: async (assessmentId: number, data: { text: string; marks: number; options: { optionText: string; isCorrect: boolean }[] }) => {
-    const response = await api.post(`/api/teacher/assessments/${assessmentId}/questions/mcq`, data);
+    const response = await api.post(`/teacher/assessments/${assessmentId}/questions/mcq`, data);
     return response.data;
   },
 
   addDescriptiveQuestion: async (assessmentId: number, data: { text: string; marks: number; modelAnswer: string }) => {
-    const response = await api.post(`/api/teacher/assessments/${assessmentId}/questions/descriptive`, data);
+    const response = await api.post(`/teacher/assessments/${assessmentId}/questions/descriptive`, data);
     return response.data;
   },
 
   updateQuestion: async (questionId: number, data: { text: string; marks: number }) => {
-    const response = await api.put(`/api/teacher/assessments/questions/${questionId}`, data);
+    const response = await api.put(`/teacher/assessments/questions/${questionId}`, data);
     return response.data;
   },
 
   deleteQuestion: async (questionId: number) => {
-    const response = await api.delete(`/api/teacher/assessments/questions/${questionId}`);
+    const response = await api.delete(`/teacher/assessments/questions/${questionId}`);
     return response.data;
   },
 
   publishAssessment: async (assessmentId: number) => {
-    const response = await api.post(`/api/teacher/assessments/${assessmentId}/publish`);
+    const response = await api.post(`/teacher/assessments/${assessmentId}/publish`);
     return response.data;
   },
 
   getTeacherAssessment: async (assessmentId: number) => {
-    const response = await api.get(`/api/teacher/assessments/${assessmentId}`);
+    const response = await api.get(`/teacher/assessments/${assessmentId}`);
     return response.data;
   },
 
   getAssessmentSubmissions: async (assessmentId: number) => {
-    const response = await api.get(`/api/teacher/assessments/${assessmentId}/submissions`);
+    const response = await api.get(`/teacher/assessments/${assessmentId}/submissions`);
     return response.data;
   },
 
   getSubmissionDetail: async (submissionId: number) => {
-    const response = await api.get(`/api/teacher/assessments/submissions/${submissionId}`);
+    const response = await api.get(`/teacher/assessments/submissions/${submissionId}`);
     return response.data;
   },
 
   // Student Endpoints
   getStudentAssessments: async () => {
-    const response = await api.get('/api/student/assessments');
+    const response = await api.get('/student/assessments');
     return response.data;
   },
 
   getStudentAssessmentDetail: async (assessmentId: number) => {
-    const response = await api.get(`/api/student/assessments/${assessmentId}`);
+    const response = await api.get(`/student/assessments/${assessmentId}`);
     return response.data;
   },
 
   startAssessment: async (assessmentId: number) => {
-    const response = await api.post(`/api/student/assessments/${assessmentId}/start`);
+    const response = await api.post(`/student/assessments/${assessmentId}/start`);
     return response.data; // returns submissionId
   },
 
   saveAnswer: async (submissionId: number, questionId: number, data: { mcqSelectedOptionId?: number | null; descriptiveText?: string | null }) => {
-    const response = await api.put(`/api/student/submissions/${submissionId}/answers/${questionId}`, data);
+    const response = await api.put(`/student/submissions/${submissionId}/answers/${questionId}`, data);
     return response.data;
   },
 
   submitAssessment: async (submissionId: number) => {
-    const response = await api.post(`/api/student/submissions/${submissionId}/submit`);
+    const response = await api.post(`/student/submissions/${submissionId}/submit`);
+    return response.data;
+  },
+
+  runCode: async (submissionId: number, questionId: number, data: { language: string; code: string }) => {
+    const response = await api.post(`/student/submissions/${submissionId}/questions/${questionId}/run`, data);
+    return response.data;
+  },
+
+  submitCode: async (submissionId: number, questionId: number, data: { language: string; code: string }) => {
+    const response = await api.post(`/student/submissions/${submissionId}/questions/${questionId}/submit-code`, data);
+    return response.data;
+  },
+
+  executePractice: async (data: { language: string; code: string; input?: string }) => {
+    const response = await api.post('/student/practice/execute', data);
     return response.data;
   }
 };

@@ -17,7 +17,7 @@ public class SchoolClass extends Auditable {
     @Column(nullable = false)
     private String name;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "academic_year_id", nullable = false)
     private AcademicYear academicYear;
 }

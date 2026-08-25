@@ -7,6 +7,7 @@ import com.psgtech.eduvault.service.AcademicYearService;
 import com.psgtech.eduvault.service.SchoolClassService;
 import com.psgtech.eduvault.service.StudentService;
 import com.psgtech.eduvault.service.TeacherService;
+import com.psgtech.eduvault.service.ClassroomService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +22,25 @@ public class AdminController {
     private final TeacherService teacherService;
     private final AcademicYearService academicYearService;
     private final SchoolClassService schoolClassService;
+    private final com.psgtech.eduvault.service.AdminUserService adminUserService;
+    private final ClassroomService classroomService;
 
     public AdminController(StudentService studentService, TeacherService teacherService, 
-                           AcademicYearService academicYearService, SchoolClassService schoolClassService) {
+                           AcademicYearService academicYearService, SchoolClassService schoolClassService,
+                           com.psgtech.eduvault.service.AdminUserService adminUserService,
+                           ClassroomService classroomService) {
         this.studentService = studentService;
         this.teacherService = teacherService;
         this.academicYearService = academicYearService;
         this.schoolClassService = schoolClassService;
+        this.adminUserService = adminUserService;
+        this.classroomService = classroomService;
+    }
+
+    // --- Admins ---
+    @PostMapping("/admins")
+    public ResponseEntity<UserResponse> createAdmin(@Valid @RequestBody UserRequest request) {
+        return ResponseEntity.ok(adminUserService.createAdmin(request));
     }
 
     // --- Students ---
@@ -56,6 +69,12 @@ public class AdminController {
         return ResponseEntity.ok(studentService.updateStatus(id, request.isActive()));
     }
 
+    @DeleteMapping("/students/{id}")
+    public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
+        studentService.deleteStudent(id);
+        return ResponseEntity.ok().build();
+    }
+
     // --- Teachers ---
     @GetMapping("/teachers")
     public ResponseEntity<List<UserResponse>> getAllTeachers() {
@@ -80,6 +99,12 @@ public class AdminController {
     @PatchMapping("/teachers/{id}/status")
     public ResponseEntity<UserResponse> updateTeacherStatus(@PathVariable Long id, @RequestBody StatusUpdateRequest request) {
         return ResponseEntity.ok(teacherService.updateStatus(id, request.isActive()));
+    }
+
+    @DeleteMapping("/teachers/{id}")
+    public ResponseEntity<Void> deleteTeacher(@PathVariable Long id) {
+        teacherService.deleteTeacher(id);
+        return ResponseEntity.ok().build();
     }
 
     // --- Academic Years ---
@@ -124,5 +149,11 @@ public class AdminController {
     public ResponseEntity<Void> deleteClass(@PathVariable Long id) {
         schoolClassService.delete(id);
         return ResponseEntity.ok().build();
+    }
+
+    // --- Classrooms ---
+    @GetMapping("/classrooms")
+    public ResponseEntity<List<com.psgtech.eduvault.dto.classroom.ClassroomResponse>> getAllClassrooms() {
+        return ResponseEntity.ok(classroomService.getAllClassrooms());
     }
 }

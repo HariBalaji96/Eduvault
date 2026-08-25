@@ -11,9 +11,12 @@ import java.time.LocalDateTime;
 @Builder
 public class UserResponse {
     private Long id;
-    private String name;
+    private String firstName;
+    private String lastName;
     private String email;
     private Role role;
     private boolean active;
     private LocalDateTime createdAt;
+    private Long schoolClassId;
+    private String schoolClassName;
 }

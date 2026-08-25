@@ -46,6 +46,11 @@ public class ClassroomController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping("/{id}/students")
+    public ResponseEntity<List<com.psgtech.eduvault.dto.admin.UserResponse>> getStudents(@PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(classroomService.getStudents(id, auth.getName()));
+    }
+
     @PostMapping("/{id}/posts")
     public ResponseEntity<PostResponse> createPost(@PathVariable Long id, @Valid @RequestBody PostRequest request, Authentication auth) {
         return ResponseEntity.ok(classroomService.createPost(id, request, auth.getName()));

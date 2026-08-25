@@ -16,11 +16,13 @@ const ClassroomDetail: React.FC = () => {
     const [isCollabModalOpen, setCollabModalOpen] = useState(false);
     const [collabId, setCollabId] = useState('');
     const [teachers, setTeachers] = useState<any[]>([]);
+    const [students, setStudents] = useState<any[]>([]);
 
     useEffect(() => {
         fetchClassroom();
         fetchPosts();
         fetchTeachers(); 
+        fetchStudents();
     }, [id]);
 
     const fetchClassroom = async () => {
@@ -45,6 +47,15 @@ const ClassroomDetail: React.FC = () => {
         try {
             const res = await client.get('/admin/teachers');
             setTeachers(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchStudents = async () => {
+        try {
+            const res = await client.get(`/teacher/classrooms/${id}/students`);
+            setStudents(res.data);
         } catch (err) {
             console.error(err);
         }
@@ -115,8 +126,31 @@ const ClassroomDetail: React.FC = () => {
                     </>
                 )}
                 {activeTab === 'STUDENTS' && (
-                    <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg p-8 text-center text-gray-500">
-                        Student enrollment feature UI goes here.
+                    <div className="col-span-full">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Enrolled Students ({students.length})</h3>
+                            </div>
+                            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {students.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500">No students found.</div>
+                                ) : (
+                                    students.map(s => (
+                                        <div key={s.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                                                    {s.firstName?.[0]}{s.lastName?.[0]}
+                                                </div>
+                                                <div>
+                                                    <p className="font-medium text-gray-900 dark:text-white">{s.firstName} {s.lastName}</p>
+                                                    <p className="text-sm text-gray-500">{s.email}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
                 {activeTab === 'ASSESSMENTS' && (
@@ -132,8 +166,8 @@ const ClassroomDetail: React.FC = () => {
                         <label className="block text-sm font-medium mb-1">Select Teacher</label>
                         <select required value={collabId} onChange={e => setCollabId(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600">
                             <option value="">Select a teacher...</option>
-                            {teachers.filter(t => t.name !== user?.name).map(t => (
-                                <option key={t.id} value={t.id}>{t.name} ({t.email})</option>
+                            {teachers.filter(t => `${t.firstName} ${t.lastName}`.trim() !== user?.name).map(t => (
+                                <option key={t.id} value={t.id}>{`${t.firstName} ${t.lastName}`.trim()} ({t.email})</option>
                             ))}
                         </select>
                     </div>

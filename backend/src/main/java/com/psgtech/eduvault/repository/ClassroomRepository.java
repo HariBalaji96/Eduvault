@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ClassroomRepository extends JpaRepository<Classroom, Long> {
+    java.util.List<Classroom> findBySchoolClass(com.psgtech.eduvault.entity.SchoolClass schoolClass);
 }

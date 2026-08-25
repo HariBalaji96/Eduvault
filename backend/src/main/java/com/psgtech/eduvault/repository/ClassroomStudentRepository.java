@@ -11,5 +11,6 @@ import java.util.Optional;
 @Repository
 public interface ClassroomStudentRepository extends JpaRepository<ClassroomStudent, Long> {
     Optional<ClassroomStudent> findByClassroomAndStudent(Classroom classroom, User student);
+    java.util.List<ClassroomStudent> findByClassroom(Classroom classroom);
     java.util.List<ClassroomStudent> findByStudentId(Long studentId);
 }

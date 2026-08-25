@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface AcademicYearRepository extends JpaRepository<AcademicYear, Long> {
+    java.util.Optional<AcademicYear> findByYearLabel(String yearLabel);
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Users, BookOpen, GraduationCap, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, BookOpen, GraduationCap, LogOut, Library } from 'lucide-react';
 
 const AdminSidebar: React.FC = () => {
     const { logout } = useAuth();
@@ -10,6 +10,7 @@ const AdminSidebar: React.FC = () => {
         { path: '/admin/students', label: 'Students', icon: <Users size={20} /> },
         { path: '/admin/teachers', label: 'Teachers', icon: <GraduationCap size={20} /> },
         { path: '/admin/classes', label: 'Classes', icon: <BookOpen size={20} /> },
+        { path: '/admin/classrooms', label: 'Classrooms', icon: <Library size={20} /> },
     ];
 
     return (

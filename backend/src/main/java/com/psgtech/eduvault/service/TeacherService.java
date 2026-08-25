@@ -37,6 +37,9 @@ public class TeacherService {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new IllegalArgumentException("Password cannot be blank");
+        }
         User user = new User();
         user.setName(request.getName());
         user.setEmail(request.getEmail());
@@ -76,6 +79,10 @@ public class TeacherService {
                 skipped.add(new BulkSkippedRow(req, "Email already exists in database"));
                 continue;
             }
+            if (req.getPassword() == null || req.getPassword().isBlank()) {
+                skipped.add(new BulkSkippedRow(req, "Password cannot be blank"));
+                continue;
+            }
 
             User user = new User();
             user.setName(req.getName());
@@ -111,10 +118,21 @@ public class TeacherService {
         return mapToResponse(userRepository.save(user));
     }
 
+    @Transactional
+    public void deleteTeacher(Long id) {
+        userRepository.deleteById(id);
+    }
+
     private UserResponse mapToResponse(User user) {
+        String fullName = user.getName() != null ? user.getName().trim() : "";
+        int spaceIdx = fullName.indexOf(' ');
+        String firstName = spaceIdx == -1 ? fullName : fullName.substring(0, spaceIdx);
+        String lastName = spaceIdx == -1 ? "" : fullName.substring(spaceIdx + 1).trim();
+
         return UserResponse.builder()
                 .id(user.getId())
-                .name(user.getName())
+                .firstName(firstName)
+                .lastName(lastName)
                 .email(user.getEmail())
                 .role(user.getRole())
                 .active(user.isActive())

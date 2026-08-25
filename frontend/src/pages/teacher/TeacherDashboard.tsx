@@ -100,7 +100,7 @@ const TeacherDashboard: React.FC = () => {
                         <label className="block text-sm font-medium mb-1">Target School Class</label>
                         <select required value={schoolClassId} onChange={e => setSchoolClassId(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600">
                             <option value="">Select a class</option>
-                            {availableClasses.map(ac => <option key={ac.id} value={ac.id}>{ac.name} ({ac.academicYear.yearLabel})</option>)}
+                            {availableClasses.map(ac => <option key={ac.id} value={ac.id}>{ac.name} ({ac.academicYear?.yearLabel || 'No Year'})</option>)}
                         </select>
                     </div>
                     <div>

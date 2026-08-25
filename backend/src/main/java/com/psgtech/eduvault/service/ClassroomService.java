@@ -1,5 +1,6 @@
 package com.psgtech.eduvault.service;
 
+import com.psgtech.eduvault.dto.admin.UserResponse;
 import com.psgtech.eduvault.dto.classroom.*;
 import com.psgtech.eduvault.entity.*;
 import com.psgtech.eduvault.repository.*;
@@ -43,6 +44,25 @@ public class ClassroomService {
                 .orElseThrow(() -> new AccessDeniedException("You do not have access to this classroom"));
     }
 
+    private Classroom verifyStudentAccess(Long classroomId, String email) {
+        User student = getUserByEmail(email);
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new IllegalArgumentException("Classroom not found"));
+        
+        boolean hasAccess = false;
+        if (student.getSchoolClass() != null && classroom.getSchoolClass() != null 
+            && student.getSchoolClass().getId().equals(classroom.getSchoolClass().getId())) {
+            hasAccess = true;
+        } else if (classroomStudentRepository.findByClassroomAndStudent(classroom, student).isPresent()) {
+            hasAccess = true;
+        }
+        
+        if (!hasAccess) {
+            throw new AccessDeniedException("You do not have access to this classroom");
+        }
+        return classroom;
+    }
+
     @Transactional
     public ClassroomResponse createClassroom(ClassroomRequest request, String email) {
         User teacher = getUserByEmail(email);
@@ -63,9 +83,19 @@ public class ClassroomService {
         ct.setPermissionLevel(PermissionLevel.OWNER);
         classroomTeacherRepository.save(ct);
 
+        // Auto-enroll all students mapped to this SchoolClass
+        List<User> students = userRepository.findBySchoolClassIdAndRole(schoolClass.getId(), Role.STUDENT);
+        for (User student : students) {
+            ClassroomStudent cs = new ClassroomStudent();
+            cs.setClassroom(classroom);
+            cs.setStudent(student);
+            classroomStudentRepository.save(cs);
+        }
+
         return mapToClassroomResponse(classroom);
     }
 
+    @Transactional(readOnly = true)
     public List<ClassroomResponse> getMyClassrooms(String email) {
         User teacher = getUserByEmail(email);
         return classroomTeacherRepository.findByTeacher(teacher).stream()
@@ -73,9 +103,41 @@ public class ClassroomService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
+    public List<ClassroomResponse> getStudentClassrooms(String email) {
+        User student = getUserByEmail(email);
+        java.util.Set<Classroom> classrooms = new java.util.HashSet<>();
+        
+        if (student.getSchoolClass() != null) {
+            classrooms.addAll(classroomRepository.findBySchoolClass(student.getSchoolClass()));
+        }
+        
+        classroomStudentRepository.findByStudentId(student.getId()).forEach(cs -> {
+            classrooms.add(cs.getClassroom());
+        });
+        
+        return classrooms.stream()
+                .map(this::mapToClassroomResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<ClassroomResponse> getAllClassrooms() {
+        return classroomRepository.findAll().stream()
+                .map(this::mapToClassroomResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public ClassroomResponse getClassroomDetails(Long id, String email) {
         ClassroomTeacher ct = verifyTeacherAccess(id, email);
         return mapToClassroomResponse(ct.getClassroom());
+    }
+
+    @Transactional(readOnly = true)
+    public ClassroomResponse getStudentClassroomDetails(Long id, String email) {
+        Classroom classroom = verifyStudentAccess(id, email);
+        return mapToClassroomResponse(classroom);
     }
 
     @Transactional
@@ -113,6 +175,25 @@ public class ClassroomService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public List<UserResponse> getStudents(Long id, String email) {
+        ClassroomTeacher ct = verifyTeacherAccess(id, email);
+        
+        java.util.Set<User> allStudents = new java.util.HashSet<>();
+        
+        if (ct.getClassroom().getSchoolClass() != null) {
+            allStudents.addAll(userRepository.findBySchoolClassIdAndRole(ct.getClassroom().getSchoolClass().getId(), Role.STUDENT));
+        }
+        
+        classroomStudentRepository.findByClassroom(ct.getClassroom()).forEach(cs -> {
+            allStudents.add(cs.getStudent());
+        });
+        
+        return allStudents.stream()
+                .map(this::mapToUserResponse)
+                .collect(Collectors.toList());
+    }
+
     @Transactional
     public PostResponse createPost(Long id, PostRequest request, String email) {
         ClassroomTeacher ct = verifyTeacherAccess(id, email);
@@ -126,9 +207,18 @@ public class ClassroomService {
         return mapToPostResponse(post);
     }
 
+    @Transactional(readOnly = true)
     public List<PostResponse> getPosts(Long id, String email) {
         ClassroomTeacher ct = verifyTeacherAccess(id, email);
         return classroomPostRepository.findByClassroomOrderByCreatedAtDesc(ct.getClassroom()).stream()
+                .map(this::mapToPostResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> getStudentClassroomPosts(Long id, String email) {
+        Classroom classroom = verifyStudentAccess(id, email);
+        return classroomPostRepository.findByClassroomOrderByCreatedAtDesc(classroom).stream()
                 .map(this::mapToPostResponse)
                 .collect(Collectors.toList());
     }
@@ -143,6 +233,7 @@ public class ClassroomService {
                 .schoolClassName(classroom.getSchoolClass() != null ? classroom.getSchoolClass().getName() : null)
                 .createdById(classroom.getCreatedBy().getId())
                 .createdByName(classroom.getCreatedBy().getName())
+                .createdAt(classroom.getCreatedAt())
                 .build();
     }
 
@@ -155,6 +246,24 @@ public class ClassroomService {
                 .authorId(post.getAuthor().getId())
                 .authorName(post.getAuthor().getName())
                 .createdAt(post.getCreatedAt())
+                .build();
+    }
+
+    private UserResponse mapToUserResponse(User user) {
+        String fullName = user.getName() != null ? user.getName().trim() : "";
+        int spaceIdx = fullName.indexOf(' ');
+        String firstName = spaceIdx > 0 ? fullName.substring(0, spaceIdx) : fullName;
+        String lastName = spaceIdx > 0 ? fullName.substring(spaceIdx + 1) : "";
+        return UserResponse.builder()
+                .id(user.getId())
+                .firstName(firstName)
+                .lastName(lastName)
+                .email(user.getEmail())
+                .role(user.getRole())
+                .schoolClassId(user.getSchoolClass() != null ? user.getSchoolClass().getId() : null)
+                .schoolClassName(user.getSchoolClass() != null ? user.getSchoolClass().getName() : null)
+                .active(user.isActive())
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 }

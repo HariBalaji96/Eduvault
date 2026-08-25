@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { assessmentApi } from '../../../services/assessmentApi';
-import api from '../../../services/api';
+import api from '../../../api/client';
 import { Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AssessmentBuilder() {
@@ -32,7 +32,7 @@ export default function AssessmentBuilder() {
     const navigate = useNavigate();
 
     useEffect(() => {
-        api.get('/api/teacher/classrooms').then(res => setClassrooms(res.data));
+        api.get('/teacher/classrooms').then(res => setClassrooms(res.data));
     }, []);
 
     const fetchAssessment = async (id: number) => {
@@ -213,7 +213,7 @@ export default function AssessmentBuilder() {
                             {activeTab === 'DESCRIPTIVE' && (
                                 <div className="space-y-4">
                                     <div>
-                                        <label className="block text-sm font-medium mb-1 flex items-center gap-2">Model Answer <AlertCircle size={14} className="text-gray-400" title="Used for AI evaluation later" /></label>
+                                        <label className="block text-sm font-medium mb-1 flex items-center gap-2">Model Answer <span title="Used for AI evaluation later"><AlertCircle size={14} className="text-gray-400" /></span></label>
                                         <textarea className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[100px]" value={modelAnswer} onChange={e => setModelAnswer(e.target.value)} />
                                     </div>
                                     <div className="pt-4 border-t dark:border-gray-700">
@@ -239,7 +239,7 @@ export default function AssessmentBuilder() {
                                     </div>
                                     <button onClick={async () => {
                                         await assessmentApi.deleteQuestion(q.id);
-                                        fetchAssessment(assessmentId);
+                                        if (assessmentId) fetchAssessment(assessmentId);
                                     }} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"><Trash2 size={18} /></button>
                                 </div>
                             ))}

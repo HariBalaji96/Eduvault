@@ -43,4 +43,14 @@ public class AssessmentStudentController {
         assessmentStudentService.submitAssessment(id, student);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/submissions/{id}/questions/{qId}/run")
+    public ResponseEntity<CodeExecutionResultDTO> runCode(@PathVariable Long id, @PathVariable Long qId, @RequestBody CodeSubmitRequest dto, @AuthenticationPrincipal User student) {
+        return ResponseEntity.ok(assessmentStudentService.runCode(id, qId, dto, student));
+    }
+
+    @PostMapping("/submissions/{id}/questions/{qId}/submit-code")
+    public ResponseEntity<CodeExecutionResultDTO> submitCode(@PathVariable Long id, @PathVariable Long qId, @RequestBody CodeSubmitRequest dto, @AuthenticationPrincipal User student) {
+        return ResponseEntity.ok(assessmentStudentService.submitCode(id, qId, dto, student));
+    }
 }

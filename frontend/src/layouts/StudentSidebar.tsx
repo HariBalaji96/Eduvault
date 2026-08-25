@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, FileText, LogOut, TerminalSquare } from 'lucide-react';
 
 const StudentSidebar: React.FC = () => {
     const { logout } = useAuth();
@@ -20,6 +20,11 @@ const StudentSidebar: React.FC = () => {
                     <li>
                         <NavLink to="/student/assessments" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${isActive ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
                             <FileText size={20} /> Assessments
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink to="/student/practice" className={({ isActive }) => `flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium ${isActive ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800'}`}>
+                            <TerminalSquare size={20} /> Practice
                         </NavLink>
                     </li>
                 </ul>
