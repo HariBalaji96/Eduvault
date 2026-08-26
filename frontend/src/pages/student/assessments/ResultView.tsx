@@ -1,9 +1,6 @@
-import React from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 export default function ResultView() {
-    const { id } = useParams();
-
     return (
         <div className="p-8 max-w-4xl mx-auto text-center mt-20">
             <div className="bg-white dark:bg-gray-800 p-12 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800">
@@ -14,7 +11,7 @@ export default function ResultView() {
                 <p className="text-lg text-gray-600 dark:text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed">
                     Great job! Your answers have been saved securely. Your final score will be available in the results section once the teacher completes evaluation.
                 </p>
-                <Link to="/student/assessments" className="inline-block bg-indigo-600 text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-indigo-700 hover:scale-105 transition shadow-lg">
+                <Link to="/student/assessments" className="inline-block bg-primary text-white px-10 py-4 rounded-full font-bold text-lg hover:bg-primary-dark hover:scale-105 transition shadow-lg">
                     Back to Dashboard
                 </Link>
             </div>

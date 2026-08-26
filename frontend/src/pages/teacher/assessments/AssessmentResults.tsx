@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { assessmentApi } from '../../../services/assessmentApi';
 
@@ -39,7 +39,7 @@ export default function AssessmentResults() {
                                 </td>
                                 <td className="p-4 font-bold text-gray-900 dark:text-white">{sub.totalScore || 0}</td>
                                 <td className="p-4">
-                                    <Link to={`/teacher/submissions/${sub.id}`} className="text-blue-600 hover:underline text-sm font-medium">Review</Link>
+                                    <Link to={`/teacher/submissions/${sub.id}`} className="text-primary hover:underline text-sm font-medium">Review</Link>
                                 </td>
                             </tr>
                         ))}

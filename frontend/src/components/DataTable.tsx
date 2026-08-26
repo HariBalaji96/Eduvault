@@ -13,36 +13,40 @@ interface DataTableProps<T> {
 
 function DataTable<T>({ data, columns, keyExtractor }: DataTableProps<T>) {
     return (
-        <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-            <table className="min-w-full divide-y-2 divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 text-sm">
-                <thead>
-                    <tr>
-                        {columns.map((col, idx) => (
-                            <th key={idx} className="whitespace-nowrap px-4 py-2 font-medium text-gray-900 dark:text-white text-left">
-                                {col.header}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {data.map((row) => (
-                        <tr key={keyExtractor(row)}>
+        <div className="modern-card overflow-hidden">
+            <div className="overflow-x-auto">
+                <table className="min-w-full text-sm text-left">
+                    <thead className="bg-gray-50/50 dark:bg-zinc-900/50 border-b border-border-subtle">
+                        <tr>
                             {columns.map((col, idx) => (
-                                <td key={idx} className="whitespace-nowrap px-4 py-2 text-gray-700 dark:text-gray-300">
-                                    {typeof col.accessor === 'function' ? col.accessor(row) : (row[col.accessor] as React.ReactNode)}
-                                </td>
+                                <th key={idx} className="whitespace-nowrap px-6 py-4 font-semibold text-gray-900 dark:text-gray-100 uppercase tracking-wider text-[11px]">
+                                    {col.header}
+                                </th>
                             ))}
                         </tr>
-                    ))}
-                    {data.length === 0 && (
-                        <tr>
-                            <td colSpan={columns.length} className="px-4 py-8 text-center text-gray-500">
-                                No data available
-                            </td>
-                        </tr>
-                    )}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-border-subtle bg-transparent">
+                        {data.map((row) => (
+                            <tr key={keyExtractor(row)} className="transition-colors hover:bg-gray-50/80 dark:hover:bg-zinc-800/50 group">
+                                {columns.map((col, idx) => (
+                                    <td key={idx} className="whitespace-nowrap px-6 py-4 text-gray-600 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+                                        {typeof col.accessor === 'function' ? col.accessor(row) : (row[col.accessor] as React.ReactNode)}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                        {data.length === 0 && (
+                            <tr>
+                                <td colSpan={columns.length} className="px-6 py-12 text-center text-gray-500">
+                                    <div className="flex flex-col items-center justify-center">
+                                        <p className="text-sm font-medium text-gray-400">No data available to display</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }

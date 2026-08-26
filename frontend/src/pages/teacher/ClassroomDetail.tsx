@@ -114,7 +114,7 @@ const ClassroomDetail: React.FC = () => {
                         onClick={() => setActiveTab(tab)}
                         className={`px-6 py-3 font-medium text-sm border-b-2 transition-colors ${
                             activeTab === tab 
-                            ? 'border-blue-600 text-blue-600 dark:border-blue-500 dark:text-blue-400' 
+                            ? 'border-primary text-primary dark:border-primary dark:text-primary' 
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                         }`}
                     >
@@ -151,7 +151,7 @@ const ClassroomDetail: React.FC = () => {
                                     students.map(s => (
                                         <div key={s.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
                                             <div className="flex items-center gap-4">
-                                                <div className="h-10 w-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold">
+                                                <div className="h-10 w-10 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold">
                                                     {s.firstName?.[0]}{s.lastName?.[0]}
                                                 </div>
                                                 <div>
@@ -171,7 +171,7 @@ const ClassroomDetail: React.FC = () => {
                         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                             <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Assessments ({assessments.length})</h3>
-                                <Link to="/teacher/assessments" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                <Link to="/teacher/assessments" className="bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
                                     Create Assessment
                                 </Link>
                             </div>
@@ -213,14 +213,14 @@ const ClassroomDetail: React.FC = () => {
                 <form onSubmit={handleAddCollaborator} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Select Teacher</label>
-                        <select required value={collabId} onChange={e => setCollabId(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600">
+                        <select required value={collabId} onChange={e => setCollabId(e.target.value)} className="modern-input">
                             <option value="">Select a teacher...</option>
                             {teachers.filter(t => `${t.firstName} ${t.lastName}`.trim() !== user?.name).map(t => (
                                 <option key={t.id} value={t.id}>{`${t.firstName} ${t.lastName}`.trim()} ({t.email})</option>
                             ))}
                         </select>
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Invite Collaborator</button>
+                    <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Invite Collaborator</button>
                 </form>
             </Modal>
         </div>

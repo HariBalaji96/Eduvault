@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { assessmentApi } from '../../../services/assessmentApi';
 
@@ -18,7 +18,7 @@ export default function SubmissionReview() {
         <div className="p-8 max-w-4xl mx-auto space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Review: {detail.studentName}</h1>
-                <Link to={`/teacher/assessments/${detail.assessmentId}/results`} className="text-blue-600 hover:underline font-medium">Back to Results</Link>
+                <Link to={`/teacher/assessments/${detail.assessmentId}/results`} className="text-primary hover:underline font-medium">Back to Results</Link>
             </div>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 flex justify-between shadow-sm">
                 <div>
@@ -27,7 +27,7 @@ export default function SubmissionReview() {
                 </div>
                 <div className="text-right">
                     <div className="text-sm text-gray-500">Total Score (MCQ)</div>
-                    <div className="font-bold text-2xl text-blue-600 dark:text-blue-400">{detail.totalScore}</div>
+                    <div className="font-bold text-2xl text-primary dark:text-primary">{detail.totalScore}</div>
                 </div>
             </div>
 
@@ -54,8 +54,8 @@ export default function SubmissionReview() {
                                     <div className="text-sm text-gray-500 mb-1">Student Answer:</div>
                                     <div className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">{ans.descriptiveText || 'Not Answered'}</div>
                                 </div>
-                                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded border border-blue-100 dark:border-blue-800">
-                                    <div className="text-sm text-blue-600 dark:text-blue-400 mb-1 font-medium">Model Answer:</div>
+                                <div className="bg-primary/10 dark:bg-blue-900/20 p-4 rounded border border-blue-100 dark:border-blue-800">
+                                    <div className="text-sm text-primary dark:text-primary mb-1 font-medium">Model Answer:</div>
                                     <div className="whitespace-pre-wrap text-blue-900 dark:text-blue-100">{ans.modelAnswerText}</div>
                                 </div>
                                 <div className="text-yellow-600 dark:text-yellow-500 text-sm italic mt-2">Manual evaluation component is coming in the next phase!</div>

@@ -139,7 +139,7 @@ const TeacherManagement: React.FC = () => {
                 <button onClick={() => handleToggleStatus(row)} title={row.active ? "Deactivate" : "Activate"} className={`${row.active ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-gray-600'}`}>
                     <Power size={16} />
                 </button>
-                <button onClick={() => handleEditClick(row)} title="Edit" className="text-blue-600 hover:text-blue-800"><Edit2 size={16} /></button>
+                <button onClick={() => handleEditClick(row)} title="Edit" className="text-primary hover:text-primary-dark"><Edit2 size={16} /></button>
                 <button onClick={() => handleDelete(row.id)} title="Delete" className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
             </div>
         ) },
@@ -150,7 +150,7 @@ const TeacherManagement: React.FC = () => {
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Teacher Management</h1>
                 <div className="flex gap-2">
-                    <button onClick={() => setCreateModalOpen(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                    <button onClick={() => setCreateModalOpen(true)} className="modern-button shadow-primary/20">
                         <Plus size={18} /> Add Teacher
                     </button>
                     <button onClick={() => {setBulkModalOpen(true); setBulkData([]); setBulkReport(null);}} className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
@@ -166,22 +166,22 @@ const TeacherManagement: React.FC = () => {
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <label className="block text-sm font-medium mb-1">First Name</label>
-                            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="modern-input" />
                         </div>
                         <div className="flex-1">
                             <label className="block text-sm font-medium mb-1">Last Name</label>
-                            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="modern-input" />
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Email</label>
-                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="modern-input" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Password</label>
-                        <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="modern-input" />
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Create</button>
+                    <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Create</button>
                 </form>
             </Modal>
 
@@ -190,29 +190,29 @@ const TeacherManagement: React.FC = () => {
                     <div className="flex gap-4">
                         <div className="flex-1">
                             <label className="block text-sm font-medium mb-1">First Name</label>
-                            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                            <input type="text" required value={firstName} onChange={e => setFirstName(e.target.value)} className="modern-input" />
                         </div>
                         <div className="flex-1">
                             <label className="block text-sm font-medium mb-1">Last Name</label>
-                            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                            <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="modern-input" />
                         </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Email</label>
-                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="modern-input" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Password (Leave blank to keep current)</label>
-                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="modern-input" />
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Save Changes</button>
+                    <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Save Changes</button>
                 </form>
             </Modal>
 
             <Modal isOpen={isBulkModalOpen} onClose={() => setBulkModalOpen(false)} title="Bulk Upload Teachers">
                 {!bulkReport ? (
                     <div className="space-y-4">
-                        <input type="file" accept=".csv" onChange={handleFileUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" />
+                        <input type="file" accept=".csv" onChange={handleFileUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary-dark hover:file:bg-primary/20" />
                         <p className="text-xs text-gray-500">CSV must have headers: name, email, password</p>
                         
                         {bulkData.length > 0 && (
@@ -222,7 +222,7 @@ const TeacherManagement: React.FC = () => {
                                     {bulkData.slice(0, 3).map((r, i) => <div key={i}>{r.name} ({r.email})</div>)}
                                     {bulkData.length > 3 && <div>...and {bulkData.length - 3} more</div>}
                                 </div>
-                                <button onClick={handleBulkSubmit} disabled={isUploading} className="mt-4 w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700 disabled:opacity-50">
+                                <button onClick={handleBulkSubmit} disabled={isUploading} className="mt-4 w-full bg-primary text-white p-2 rounded hover:bg-primary-dark disabled:opacity-50">
                                     {isUploading ? 'Uploading...' : 'Confirm Upload'}
                                 </button>
                             </div>

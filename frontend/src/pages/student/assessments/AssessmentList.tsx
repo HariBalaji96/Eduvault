@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { assessmentApi } from '../../../services/assessmentApi';
 
@@ -33,7 +33,7 @@ export default function AssessmentList() {
                             {a.status === 'SUBMITTED' ? (
                                 <Link to={`/student/assessments/${a.id}/result`} className="block w-full text-center bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 py-2.5 rounded-xl font-medium transition shadow-sm">View Result</Link>
                             ) : (
-                                <Link to={`/student/assessments/${a.id}/take`} className="block w-full text-center bg-indigo-600 hover:bg-indigo-700 text-white py-2.5 rounded-xl font-bold transition shadow-sm">
+                                <Link to={`/student/assessments/${a.id}/take`} className="block w-full text-center bg-primary hover:bg-primary-dark text-white py-2.5 rounded-xl font-bold transition shadow-sm">
                                     {a.status === 'IN_PROGRESS' ? 'Resume Assessment' : 'Start Assessment'}
                                 </Link>
                             )}

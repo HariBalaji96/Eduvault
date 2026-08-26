@@ -1,4 +1,4 @@
-import React from 'react';
+
 import CodeEditor from '../../../components/CodeEditor';
 import { assessmentApi } from '../../../services/assessmentApi';
 
@@ -14,14 +14,12 @@ export default function PracticePage() {
     };
 
     return (
-        <div className="h-full flex overflow-hidden bg-[#1e1e1e] font-sans">
+        <div className="h-[calc(100vh-6rem)] md:h-[calc(100vh-8rem)] w-full">
             {/* Full Screen Code Editor for Practice */}
-            <div className="w-full p-4 flex flex-col">
-                <CodeEditor 
-                    mode="practice" 
-                    onRun={handleRun} 
-                />
-            </div>
+            <CodeEditor 
+                mode="practice" 
+                onRun={handleRun} 
+            />
         </div>
     );
 }

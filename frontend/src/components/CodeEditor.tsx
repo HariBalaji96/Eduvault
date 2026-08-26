@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 import { Play, Send, CheckCircle2, XCircle, AlertCircle, RefreshCw, TerminalSquare } from 'lucide-react';
 
@@ -77,9 +77,9 @@ export default function CodeEditor({ mode, initialCode = '', onRun, onSubmit }: 
     const totalCount = result?.results?.length || 0;
 
     return (
-        <div className="flex flex-col h-full bg-[#1e1e1e] rounded-xl overflow-hidden border border-gray-800 shadow-xl font-sans">
+        <div className="flex flex-col h-full modern-card !bg-zinc-950 !border-zinc-800 font-sans shadow-2xl">
             {/* Header / Toolbar */}
-            <div className="flex items-center justify-between bg-[#2d2d2d] px-4 py-3 border-b border-gray-800">
+            <div className="flex items-center justify-between bg-zinc-900 px-5 py-3 border-b border-zinc-800">
                 <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <TerminalSquare size={18} className="text-gray-400" />
@@ -88,7 +88,7 @@ export default function CodeEditor({ mode, initialCode = '', onRun, onSubmit }: 
                     <select
                         value={language}
                         onChange={(e) => setLanguage(e.target.value)}
-                        className="bg-[#1e1e1e] text-gray-300 border border-gray-700 rounded px-3 py-1 text-sm focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                        className="bg-[#1e1e1e] text-gray-300 border border-gray-700 rounded px-3 py-1 text-sm focus:ring-1 focus:ring-primary focus:outline-none"
                     >
                         <option value="python">Python 3</option>
                         <option value="java">Java 17</option>
@@ -99,18 +99,18 @@ export default function CodeEditor({ mode, initialCode = '', onRun, onSubmit }: 
                     <button
                         onClick={handleRun}
                         disabled={isRunning || isSubmitting}
-                        className="flex items-center gap-2 bg-[#3c3c3c] hover:bg-[#4c4c4c] text-gray-200 px-4 py-1.5 rounded transition text-sm font-medium disabled:opacity-50"
+                        className="inline-flex items-center justify-center rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-semibold text-gray-200 transition-all hover:bg-zinc-700 active:scale-[0.98] disabled:opacity-50"
                     >
-                        {isRunning ? <RefreshCw size={16} className="animate-spin" /> : <Play size={16} className="text-green-400" />}
+                        {isRunning ? <RefreshCw size={16} className="animate-spin mr-2" /> : <Play size={16} className="text-emerald-400 mr-2" />}
                         Run
                     </button>
                     {onSubmit && (
                         <button
                             onClick={handleSubmit}
                             disabled={isRunning || isSubmitting}
-                            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded transition shadow-sm text-sm font-medium disabled:opacity-50"
+                            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-1.5 text-sm font-semibold text-white transition-all hover:bg-primary-dark active:scale-[0.98] shadow-sm disabled:opacity-50"
                         >
-                            {isSubmitting ? <RefreshCw size={16} className="animate-spin" /> : <Send size={16} />}
+                            {isSubmitting ? <RefreshCw size={16} className="animate-spin mr-2" /> : <Send size={16} className="mr-2" />}
                             Submit
                         </button>
                     )}
@@ -148,7 +148,7 @@ export default function CodeEditor({ mode, initialCode = '', onRun, onSubmit }: 
                 <div className="bg-[#1e1e1e] border-t border-gray-800 p-2">
                     <span className="text-xs font-semibold text-gray-400 mb-1 block px-2 tracking-wide">CUSTOM INPUT</span>
                     <textarea 
-                        className="w-full bg-[#2d2d2d] text-gray-300 font-mono text-sm p-2 rounded border border-gray-700 focus:outline-none focus:border-indigo-500 resize-y min-h-[60px]"
+                        className="w-full bg-[#2d2d2d] text-gray-300 font-mono text-sm p-2 rounded border border-gray-700 focus:outline-none focus:border-primary resize-y min-h-[60px]"
                         placeholder="Enter standard input here..."
                         value={customInput}
                         onChange={(e) => setCustomInput(e.target.value)}

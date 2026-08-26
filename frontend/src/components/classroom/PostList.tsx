@@ -13,7 +13,7 @@ const PostList: React.FC<{ posts: Post[] }> = ({ posts }) => {
     const getTypeColor = (type: string) => {
         switch(type) {
             case 'ANNOUNCEMENT': return 'bg-yellow-100 text-yellow-800';
-            case 'MATERIAL': return 'bg-blue-100 text-blue-800';
+            case 'MATERIAL': return 'bg-primary/20 text-primary-dark';
             case 'DOCUMENT': return 'bg-red-100 text-red-800';
             case 'LINK': return 'bg-purple-100 text-purple-800';
             default: return 'bg-gray-100 text-gray-800';
@@ -45,7 +45,7 @@ const PostList: React.FC<{ posts: Post[] }> = ({ posts }) => {
                     <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">{post.content}</p>
                     {post.attachmentUrl && (
                         <div className="mt-4 p-3 border rounded bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700">
-                            <a href={post.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline break-all">
+                            <a href={post.attachmentUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
                                 📎 {post.attachmentUrl}
                             </a>
                         </div>

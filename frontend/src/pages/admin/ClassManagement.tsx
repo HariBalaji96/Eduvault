@@ -91,7 +91,7 @@ const ClassManagement: React.FC = () => {
             <div>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Academic Years</h2>
-                    <button onClick={() => setYearModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                    <button onClick={() => setYearModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded text-sm hover:bg-primary-dark">
                         <Plus size={16} /> Add Year
                     </button>
                 </div>
@@ -100,7 +100,7 @@ const ClassManagement: React.FC = () => {
                     { header: 'Year Label', accessor: 'yearLabel'},
                     { header: 'Actions', accessor: (r: any) => (
                         <div className="flex gap-2">
-                            <button onClick={() => handleEditYearClick(r)} className="text-blue-600 hover:text-blue-800"><Edit2 size={16} /></button>
+                            <button onClick={() => handleEditYearClick(r)} className="text-primary hover:text-primary-dark"><Edit2 size={16} /></button>
                             <button onClick={() => handleDeleteYear(r.id)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
                         </div>
                     )}
@@ -110,7 +110,7 @@ const ClassManagement: React.FC = () => {
             <div>
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white">Classes</h2>
-                    <button onClick={() => setClassModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+                    <button onClick={() => setClassModalOpen(true)} className="flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded text-sm hover:bg-primary-dark">
                         <Plus size={16} /> Add Class
                     </button>
                 </div>
@@ -120,7 +120,7 @@ const ClassManagement: React.FC = () => {
                     { header: 'Academic Year', accessor: (r: any) => r.academicYear?.yearLabel || 'No Year'},
                     { header: 'Actions', accessor: (r: any) => (
                         <div className="flex gap-2">
-                            <button onClick={() => handleEditClassClick(r)} className="text-blue-600 hover:text-blue-800"><Edit2 size={16} /></button>
+                            <button onClick={() => handleEditClassClick(r)} className="text-primary hover:text-primary-dark"><Edit2 size={16} /></button>
                             <button onClick={() => handleDeleteClass(r.id)} className="text-red-600 hover:text-red-800"><Trash2 size={16} /></button>
                         </div>
                     )}
@@ -131,9 +131,9 @@ const ClassManagement: React.FC = () => {
                 <form onSubmit={createYear} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Year Label (e.g. 2025-2026)</label>
-                        <input type="text" required value={yearLabel} onChange={e => setYearLabel(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="text" required value={yearLabel} onChange={e => setYearLabel(e.target.value)} className="modern-input" />
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Create</button>
+                    <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Create</button>
                 </form>
             </Modal>
 
@@ -141,16 +141,16 @@ const ClassManagement: React.FC = () => {
                 <form onSubmit={createClass} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Class Name</label>
-                        <input type="text" required value={className} onChange={e => setClassName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="text" required value={className} onChange={e => setClassName(e.target.value)} className="modern-input" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Academic Year</label>
-                        <select required value={selectedYearId} onChange={e => setSelectedYearId(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600">
+                        <select required value={selectedYearId} onChange={e => setSelectedYearId(e.target.value)} className="modern-input">
                             <option value="">Select a year</option>
                             {years.map(y => <option key={y.id} value={y.id}>{y.yearLabel}</option>)}
                         </select>
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Create</button>
+                    <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Create</button>
                 </form>
             </Modal>
 
@@ -158,9 +158,9 @@ const ClassManagement: React.FC = () => {
                 <form onSubmit={handleEditYearSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Year Label (e.g. 2025-2026)</label>
-                        <input type="text" required value={yearLabel} onChange={e => setYearLabel(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="text" required value={yearLabel} onChange={e => setYearLabel(e.target.value)} className="modern-input" />
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Save Changes</button>
+                    <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Save Changes</button>
                 </form>
             </Modal>
 
@@ -168,16 +168,16 @@ const ClassManagement: React.FC = () => {
                 <form onSubmit={handleEditClassSubmit} className="space-y-4">
                     <div>
                         <label className="block text-sm font-medium mb-1">Class Name</label>
-                        <input type="text" required value={className} onChange={e => setClassName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                        <input type="text" required value={className} onChange={e => setClassName(e.target.value)} className="modern-input" />
                     </div>
                     <div>
                         <label className="block text-sm font-medium mb-1">Academic Year</label>
-                        <select required value={selectedYearId} onChange={e => setSelectedYearId(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600">
+                        <select required value={selectedYearId} onChange={e => setSelectedYearId(e.target.value)} className="modern-input">
                             <option value="">Select a year</option>
                             {years.map(y => <option key={y.id} value={y.id}>{y.yearLabel}</option>)}
                         </select>
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Save Changes</button>
+                    <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Save Changes</button>
                 </form>
             </Modal>
         </div>

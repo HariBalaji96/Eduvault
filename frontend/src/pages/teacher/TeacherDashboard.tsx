@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../../api/client';
 import Modal from '../../components/Modal';
-import { Plus, Book } from 'lucide-react';
+import { Plus, BookOpen, Users, FolderOpen } from 'lucide-react';
 
 const TeacherDashboard: React.FC = () => {
     const [classrooms, setClassrooms] = useState<any[]>([]);
@@ -13,6 +13,7 @@ const TeacherDashboard: React.FC = () => {
     const [description, setDescription] = useState('');
     const [schoolClassId, setSchoolClassId] = useState('');
     const [availableClasses, setAvailableClasses] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     const fetchClassrooms = async () => {
         try {
@@ -20,6 +21,8 @@ const TeacherDashboard: React.FC = () => {
             setClassrooms(res.data);
         } catch (err) {
             console.error("Failed to fetch classrooms", err);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -50,34 +53,61 @@ const TeacherDashboard: React.FC = () => {
     };
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">My Classrooms</h1>
-                <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    <Plus size={20} /> Create Classroom
+        <div className="max-w-6xl mx-auto">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end mb-10 gap-4">
+                <div>
+                    <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white mb-2">My Classrooms</h1>
+                    <p className="text-gray-500 dark:text-gray-400">Manage your virtual teaching spaces and assignments.</p>
+                </div>
+                <button onClick={() => setModalOpen(true)} className="modern-button shadow-primary/20">
+                    <Plus size={18} className="mr-2" /> New Classroom
                 </button>
             </div>
 
-            {classrooms.length === 0 ? (
-                <div className="text-center py-20 text-gray-500 bg-white dark:bg-gray-800 rounded-lg shadow-sm">
-                    <Book size={48} className="mx-auto mb-4 opacity-50" />
-                    <p className="text-xl font-medium">You don't have any classrooms yet.</p>
+            {isLoading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="modern-card p-6 min-h-[220px] animate-pulse">
+                            <div className="h-4 bg-gray-200 dark:bg-zinc-800 rounded w-1/3 mb-6"></div>
+                            <div className="h-6 bg-gray-200 dark:bg-zinc-800 rounded w-3/4 mb-4"></div>
+                            <div className="h-4 bg-gray-200 dark:bg-zinc-800 rounded w-full mb-2"></div>
+                            <div className="h-4 bg-gray-200 dark:bg-zinc-800 rounded w-2/3"></div>
+                        </div>
+                    ))}
+                </div>
+            ) : classrooms.length === 0 ? (
+                <div className="modern-card p-16 text-center border-dashed">
+                    <div className="mx-auto w-16 h-16 bg-gray-50 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6">
+                        <FolderOpen size={32} className="text-gray-400" />
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No classrooms found</h3>
+                    <p className="text-gray-500 max-w-sm mx-auto mb-8">Get started by creating your first virtual classroom to manage students and assignments.</p>
+                    <button onClick={() => setModalOpen(true)} className="modern-button-outline">
+                        Create your first classroom
+                    </button>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {classrooms.map(c => (
                         <Link to={`/teacher/classrooms/${c.id}`} key={c.id} className="block group">
-                            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col">
-                                <div className="h-32 bg-gradient-to-r from-blue-500 to-indigo-600 p-6 flex flex-col justify-end relative">
-                                    <h2 className="text-xl font-bold text-white truncate">{c.name}</h2>
-                                    <p className="text-blue-100 text-sm truncate">{c.subject}</p>
+                            <div className="modern-card p-6 h-full flex flex-col hover:-translate-y-1 hover:shadow-floating transition-all duration-300 hover:border-primary/30 relative overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-primary/20 group-hover:bg-primary transition-colors"></div>
+                                <div className="flex justify-between items-start mb-6 mt-2">
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary-dark">
+                                        {c.subject}
+                                    </span>
                                 </div>
-                                <div className="p-6 flex-1 flex flex-col justify-between">
-                                    <p className="text-gray-600 dark:text-gray-300 text-sm line-clamp-2 mb-4">{c.description || 'No description provided.'}</p>
-                                    <div className="flex items-center text-xs text-gray-500">
-                                        <span>Class: {c.schoolClassName}</span>
-                                        <span className="mx-2">•</span>
-                                        <span>Owner: {c.createdByName}</span>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary transition-colors line-clamp-1">{c.name}</h3>
+                                <p className="text-gray-500 dark:text-gray-400 text-sm line-clamp-2 flex-1 mb-6">
+                                    {c.description || 'No description provided.'}
+                                </p>
+                                <div className="pt-4 border-t border-border-subtle flex items-center justify-between text-xs font-medium text-gray-500">
+                                    <div className="flex items-center gap-1.5">
+                                        <BookOpen size={14} className="text-gray-400" />
+                                        {c.schoolClassName}
+                                    </div>
+                                    <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-800 px-2 py-1 rounded">
+                                        <Users size={14} className="text-gray-400" /> Owner
                                     </div>
                                 </div>
                             </div>
@@ -87,27 +117,29 @@ const TeacherDashboard: React.FC = () => {
             )}
 
             <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title="Create Classroom">
-                <form onSubmit={handleCreate} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Classroom Name</label>
-                        <input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                <form onSubmit={handleCreate} className="space-y-5 py-2">
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Classroom Name</label>
+                        <input type="text" required value={name} onChange={e => setName(e.target.value)} className="modern-input" placeholder="e.g. Advanced Physics 101" />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Subject</label>
-                        <input type="text" required value={subject} onChange={e => setSubject(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600" />
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Subject</label>
+                        <input type="text" required value={subject} onChange={e => setSubject(e.target.value)} className="modern-input" placeholder="e.g. Physics" />
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Target School Class</label>
-                        <select required value={schoolClassId} onChange={e => setSchoolClassId(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600">
-                            <option value="">Select a class</option>
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Target School Class</label>
+                        <select required value={schoolClassId} onChange={e => setSchoolClassId(e.target.value)} className="modern-input">
+                            <option value="">Select a class...</option>
                             {availableClasses.map(ac => <option key={ac.id} value={ac.id}>{ac.name} ({ac.academicYear?.yearLabel || 'No Year'})</option>)}
                         </select>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Description (Optional)</label>
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} className="w-full border rounded p-2 dark:bg-gray-700 dark:border-gray-600 min-h-[80px]" />
+                    <div className="space-y-1.5">
+                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Description (Optional)</label>
+                        <textarea value={description} onChange={e => setDescription(e.target.value)} className="modern-input min-h-[100px] resize-none" placeholder="Brief description of this classroom..." />
                     </div>
-                    <button type="submit" className="w-full bg-blue-600 text-white p-2 rounded hover:bg-blue-700">Create</button>
+                    <div className="pt-2">
+                        <button type="submit" className="modern-button w-full shadow-primary/20">Create Classroom</button>
+                    </div>
                 </form>
             </Modal>
         </div>

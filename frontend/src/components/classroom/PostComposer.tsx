@@ -50,7 +50,7 @@ const PostComposer: React.FC<PostComposerProps> = ({ onSubmit }) => {
                     placeholder="Attachment URL (optional)" 
                     className="flex-1 border rounded p-2 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                 />
-                <button type="submit" disabled={isSubmitting || !content.trim()} className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50">
+                <button type="submit" disabled={isSubmitting || !content.trim()} className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded hover:bg-primary-dark disabled:opacity-50">
                     <Send size={16} /> Post
                 </button>
             </div>

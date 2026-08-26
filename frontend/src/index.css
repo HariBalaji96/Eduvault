@@ -1,57 +1,120 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Inter", "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  
+  --color-primary: var(--theme-primary);
+  --color-primary-dark: var(--theme-primary-dark);
+  --color-secondary: var(--theme-secondary);
+  
+  --color-background-app: var(--theme-bg-app);
+  --color-background-surface: var(--theme-bg-surface);
+  --color-border-subtle: var(--theme-border-subtle);
+  
+  --shadow-soft: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.05), 0 20px 25px -5px rgba(0, 0, 0, 0.02), 0 10px 10px -5px rgba(0, 0, 0, 0.01);
+  --shadow-floating: 0 0 0 1px rgba(0, 0, 0, 0.03), 0 30px 60px -12px rgba(0, 0, 0, 0.1), 0 18px 36px -18px rgba(0, 0, 0, 0.1);
+  
+  --animate-fade-in: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-slide-up: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+  --theme-bg-app: #fcfcfc;
+  --theme-bg-surface: #ffffff;
+  --theme-border-subtle: #f1f1f4;
+  
+  --theme-primary: #171717;
+  --theme-primary-dark: #000000;
+  --theme-secondary: #525252;
+  
+  /* Fallback (Default to Student) */
+  --theme-primary: #2563eb;
+  --theme-primary-dark: #1d4ed8;
+  --theme-secondary: #0891b2;
+}
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+/* Base resets & typography */
+body {
+  margin: 0;
+  background-color: var(--theme-bg-app);
+  color: #171717;
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+/* Theme Profiles */
+.theme-admin {
+  --theme-primary: #4f46e5;
+  --theme-primary-dark: #3730a3;
+  --theme-secondary: #7c3aed;
+}
+
+.theme-teacher {
+  --theme-primary: #059669;
+  --theme-primary-dark: #047857;
+  --theme-secondary: #0d9488;
+}
+
+.theme-student {
+  --theme-primary: #2563eb;
+  --theme-primary-dark: #1d4ed8;
+  --theme-secondary: #0891b2;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+    --theme-bg-app: #09090b;
+    --theme-bg-surface: #121214;
+    --theme-border-subtle: #27272a;
   }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  body {
+    color: #fafafa;
   }
 }
 
-body {
-  margin: 0;
+/* Utilities for neo-minimalist inputs and scrollbars */
+.modern-input {
+  @apply w-full rounded-xl border border-border-subtle bg-background-surface px-4 py-2.5 text-sm transition-all focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 dark:bg-zinc-900/50 dark:border-zinc-800 dark:focus:border-primary;
+}
+
+.modern-button {
+  @apply inline-flex items-center justify-center rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-primary-dark active:scale-[0.98] shadow-sm;
+}
+
+.modern-button-outline {
+  @apply inline-flex items-center justify-center rounded-xl border border-border-subtle bg-background-surface px-5 py-2.5 text-sm font-semibold text-gray-900 transition-all hover:bg-gray-50 active:scale-[0.98] dark:text-gray-100 dark:hover:bg-zinc-800 dark:border-zinc-800 shadow-sm;
+}
+
+.modern-card {
+  @apply rounded-2xl border border-border-subtle bg-background-surface shadow-card overflow-hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d4d4d8;
+  border-radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-thumb {
+    background: #3f3f46;
+  }
 }

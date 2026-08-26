@@ -3,11 +3,10 @@ import { useParams, Link } from 'react-router-dom';
 import client from '../../api/client';
 import { assessmentApi } from '../../services/assessmentApi';
 import PostList from '../../components/classroom/PostList';
-import { useAuth } from '../../context/AuthContext';
+
 
 const StudentClassroomDetail: React.FC = () => {
     const { id } = useParams();
-    const { user } = useAuth();
     const [classroom, setClassroom] = useState<any>(null);
     const [posts, setPosts] = useState<any[]>([]);
     const [assessments, setAssessments] = useState<any[]>([]);
@@ -106,7 +105,7 @@ const StudentClassroomDetail: React.FC = () => {
                                                 </p>
                                                 <div className="mt-2">
                                                     {a.status === 'NOT_STARTED' && <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">Not Started</span>}
-                                                    {a.status === 'IN_PROGRESS' && <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs font-medium">In Progress</span>}
+                                                    {a.status === 'IN_PROGRESS' && <span className="px-2 py-1 bg-primary/20 text-primary rounded text-xs font-medium">In Progress</span>}
                                                     {a.status === 'SUBMITTED' && <span className="px-2 py-1 bg-green-100 text-green-600 rounded text-xs font-medium">Submitted</span>}
                                                     {a.status === 'GRADED' && <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded text-xs font-medium">Graded</span>}
                                                 </div>
@@ -118,7 +117,7 @@ const StudentClassroomDetail: React.FC = () => {
                                                     </Link>
                                                 )}
                                                 {a.status === 'IN_PROGRESS' && (
-                                                    <Link to={`/student/assessments/${a.id}`} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                                    <Link to={`/student/assessments/${a.id}`} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
                                                         Resume
                                                     </Link>
                                                 )}
