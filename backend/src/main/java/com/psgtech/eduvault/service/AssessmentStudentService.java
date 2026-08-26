@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class AssessmentStudentService {
     private final AssessmentRepository assessmentRepository;
+    private final ClassroomRepository classroomRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
     private final SubmissionRepository submissionRepository;
     private final QuestionRepository questionRepository;
@@ -34,6 +35,36 @@ public class AssessmentStudentService {
         List<Assessment> assessments = assessmentRepository.findByClassroomIdInAndPublishedAtIsNotNull(classroomIds);
         List<Long> assessmentIds = assessments.stream().map(Assessment::getId).collect(Collectors.toList());
 
+        List<Submission> submissions = submissionRepository.findByStudentIdAndAssessmentIdIn(student.getId(), assessmentIds);
+
+        return assessments.stream().map(assessment -> {
+            StudentAssessmentListDTO dto = new StudentAssessmentListDTO();
+            dto.setId(assessment.getId());
+            dto.setTitle(assessment.getTitle());
+            dto.setClassroomId(assessment.getClassroom().getId());
+            dto.setClassroomName(assessment.getClassroom().getName());
+            dto.setPublishedAt(assessment.getPublishedAt());
+            dto.setDeadline(assessment.getDeadline());
+            dto.setTotalMarks(assessment.getTotalMarks());
+
+            Optional<Submission> submission = submissions.stream()
+                    .filter(s -> s.getAssessment().getId().equals(assessment.getId()))
+                    .findFirst();
+
+            dto.setStatus(submission.map(Submission::getStatus).orElse(SubmissionStatus.NOT_STARTED));
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<StudentAssessmentListDTO> getClassroomAssessments(Long classroomId, User student) {
+        classroomStudentRepository.findByClassroomAndStudent(
+            classroomRepository.findById(classroomId).orElseThrow(() -> new RuntimeException("Classroom not found")),
+            student
+        ).orElseThrow(() -> new RuntimeException("Unauthorized: You are not enrolled in this classroom"));
+
+        List<Assessment> assessments = assessmentRepository.findByClassroomIdAndPublishedAtIsNotNull(classroomId);
+        List<Long> assessmentIds = assessments.stream().map(Assessment::getId).collect(Collectors.toList());
         List<Submission> submissions = submissionRepository.findByStudentIdAndAssessmentIdIn(student.getId(), assessmentIds);
 
         return assessments.stream().map(assessment -> {

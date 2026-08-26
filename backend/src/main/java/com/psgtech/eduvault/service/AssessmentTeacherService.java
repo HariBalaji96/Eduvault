@@ -160,6 +160,27 @@ public class AssessmentTeacherService {
         return dto;
     }
 
+    @Transactional(readOnly = true)
+    public List<AssessmentTeacherDTO> getClassroomAssessments(Long classroomId, User teacher) {
+        Classroom classroom = classroomRepository.findById(classroomId)
+                .orElseThrow(() -> new RuntimeException("Classroom not found"));
+        classroomTeacherRepository.findByClassroomAndTeacher(classroom, teacher)
+                .orElseThrow(() -> new RuntimeException("Unauthorized to access this classroom"));
+        
+        List<Assessment> assessments = assessmentRepository.findByClassroomId(classroomId);
+        return assessments.stream().map(assessment -> {
+            AssessmentTeacherDTO dto = new AssessmentTeacherDTO();
+            dto.setId(assessment.getId());
+            dto.setTitle(assessment.getTitle());
+            dto.setClassroomId(assessment.getClassroom().getId());
+            dto.setClassroomName(assessment.getClassroom().getName());
+            dto.setPublishedAt(assessment.getPublishedAt());
+            dto.setDeadline(assessment.getDeadline());
+            dto.setTotalMarks(assessment.getTotalMarks());
+            return dto;
+        }).collect(Collectors.toList());
+    }
+
     private QuestionTeacherDTO mapToQuestionTeacherDTO(Question q) {
         QuestionTeacherDTO dto = new QuestionTeacherDTO();
         dto.setId(q.getId());

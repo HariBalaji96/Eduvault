@@ -86,5 +86,15 @@ export const assessmentApi = {
   executePractice: async (data: { language: string; code: string; input?: string }) => {
     const response = await api.post('/student/practice/execute', data);
     return response.data;
+  },
+
+  getTeacherClassroomAssessments: async (classroomId: number) => {
+    const response = await api.get(`/teacher/assessments/classroom/${classroomId}`);
+    return response.data;
+  },
+
+  getStudentClassroomAssessments: async (classroomId: number) => {
+    const response = await api.get(`/student/assessments/classroom/${classroomId}`);
+    return response.data;
   }
 };

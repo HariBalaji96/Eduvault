@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import client from '../../api/client';
+import { assessmentApi } from '../../services/assessmentApi';
 import PostList from '../../components/classroom/PostList';
 import { useAuth } from '../../context/AuthContext';
 
@@ -9,11 +10,13 @@ const StudentClassroomDetail: React.FC = () => {
     const { user } = useAuth();
     const [classroom, setClassroom] = useState<any>(null);
     const [posts, setPosts] = useState<any[]>([]);
+    const [assessments, setAssessments] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState('STREAM');
     
     useEffect(() => {
         fetchClassroom();
         fetchPosts();
+        fetchAssessments();
     }, [id]);
 
     const fetchClassroom = async () => {
@@ -29,6 +32,16 @@ const StudentClassroomDetail: React.FC = () => {
         try {
             const res = await client.get(`/student/classrooms/${id}/posts`);
             setPosts(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchAssessments = async () => {
+        if (!id) return;
+        try {
+            const data = await assessmentApi.getStudentClassroomAssessments(Number(id));
+            setAssessments(data);
         } catch (err) {
             console.error(err);
         }
@@ -75,8 +88,51 @@ const StudentClassroomDetail: React.FC = () => {
                     </>
                 )}
                 {activeTab === 'ASSESSMENTS' && (
-                    <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg p-8 text-center text-gray-500">
-                        Check the Assessments tab on the left menu for your tests.
+                    <div className="col-span-full">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                            <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Assessments ({assessments.length})</h3>
+                            </div>
+                            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {assessments.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500">No assessments found for this classroom.</div>
+                                ) : (
+                                    assessments.map(a => (
+                                        <div key={a.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 dark:text-white text-lg">{a.title}</h4>
+                                                <p className="text-sm text-gray-500 mt-1">
+                                                    Deadline: {a.deadline ? new Date(a.deadline).toLocaleString() : 'No deadline'} • Total Marks: {a.totalMarks}
+                                                </p>
+                                                <div className="mt-2">
+                                                    {a.status === 'NOT_STARTED' && <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs font-medium">Not Started</span>}
+                                                    {a.status === 'IN_PROGRESS' && <span className="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs font-medium">In Progress</span>}
+                                                    {a.status === 'SUBMITTED' && <span className="px-2 py-1 bg-green-100 text-green-600 rounded text-xs font-medium">Submitted</span>}
+                                                    {a.status === 'GRADED' && <span className="px-2 py-1 bg-purple-100 text-purple-600 rounded text-xs font-medium">Graded</span>}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                {a.status === 'NOT_STARTED' && (
+                                                    <Link to={`/student/assessments/${a.id}`} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                                                        Start
+                                                    </Link>
+                                                )}
+                                                {a.status === 'IN_PROGRESS' && (
+                                                    <Link to={`/student/assessments/${a.id}`} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                                        Resume
+                                                    </Link>
+                                                )}
+                                                {(a.status === 'SUBMITTED' || a.status === 'GRADED') && (
+                                                    <Link to={`/student/assessments/${a.id}/result`} className="px-4 py-2 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                                        View Result
+                                                    </Link>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

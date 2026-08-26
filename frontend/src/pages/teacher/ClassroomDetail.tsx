@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import client from '../../api/client';
+import { assessmentApi } from '../../services/assessmentApi';
 import PostComposer from '../../components/classroom/PostComposer';
 import PostList from '../../components/classroom/PostList';
 import Modal from '../../components/Modal';
@@ -17,12 +18,14 @@ const ClassroomDetail: React.FC = () => {
     const [collabId, setCollabId] = useState('');
     const [teachers, setTeachers] = useState<any[]>([]);
     const [students, setStudents] = useState<any[]>([]);
+    const [assessments, setAssessments] = useState<any[]>([]);
 
     useEffect(() => {
         fetchClassroom();
         fetchPosts();
         fetchTeachers(); 
         fetchStudents();
+        fetchAssessments();
     }, [id]);
 
     const fetchClassroom = async () => {
@@ -38,6 +41,16 @@ const ClassroomDetail: React.FC = () => {
         try {
             const res = await client.get(`/teacher/classrooms/${id}/posts`);
             setPosts(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const fetchAssessments = async () => {
+        if (!id) return;
+        try {
+            const data = await assessmentApi.getTeacherClassroomAssessments(Number(id));
+            setAssessments(data);
         } catch (err) {
             console.error(err);
         }
@@ -154,8 +167,44 @@ const ClassroomDetail: React.FC = () => {
                     </div>
                 )}
                 {activeTab === 'ASSESSMENTS' && (
-                    <div className="col-span-full bg-white dark:bg-gray-800 rounded-lg p-8 text-center text-gray-500">
-                        Assessment feature UI goes here.
+                    <div className="col-span-full">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Assessments ({assessments.length})</h3>
+                                <Link to="/teacher/assessments" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                                    Create Assessment
+                                </Link>
+                            </div>
+                            <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                                {assessments.length === 0 ? (
+                                    <div className="p-8 text-center text-gray-500">No assessments found for this classroom.</div>
+                                ) : (
+                                    assessments.map(a => (
+                                        <div key={a.id} className="p-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors">
+                                            <div>
+                                                <h4 className="font-medium text-gray-900 dark:text-white text-lg">{a.title}</h4>
+                                                <p className="text-sm text-gray-500 mt-1">
+                                                    Status: <span className={a.publishedAt ? "text-green-600 font-medium" : "text-amber-600 font-medium"}>{a.publishedAt ? "Published" : "Draft"}</span>
+                                                    {a.publishedAt && ` • Published on: ${new Date(a.publishedAt).toLocaleDateString()}`}
+                                                    <br />
+                                                    Deadline: {a.deadline ? new Date(a.deadline).toLocaleString() : 'No deadline'} • Total Marks: {a.totalMarks}
+                                                </p>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                {a.publishedAt && (
+                                                    <Link to={`/teacher/assessments/${a.id}/submissions`} className="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                                        View Submissions
+                                                    </Link>
+                                                )}
+                                                <Link to={`/teacher/assessments/${a.id}/edit`} className="px-3 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                                                    Edit
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

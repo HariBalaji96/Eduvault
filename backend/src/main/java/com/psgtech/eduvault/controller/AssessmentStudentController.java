@@ -18,39 +18,44 @@ public class AssessmentStudentController {
     private final AssessmentStudentService assessmentStudentService;
 
     @GetMapping("/assessments")
-    public ResponseEntity<List<StudentAssessmentListDTO>> getAssessments(@AuthenticationPrincipal User student) {
+    public ResponseEntity<List<StudentAssessmentListDTO>> getAssessments(@AuthenticationPrincipal(expression = "user") User student) {
         return ResponseEntity.ok(assessmentStudentService.getPublishedAssessments(student));
     }
 
     @GetMapping("/assessments/{id}")
-    public ResponseEntity<AssessmentStudentDTO> getAssessment(@PathVariable Long id, @AuthenticationPrincipal User student) {
+    public ResponseEntity<AssessmentStudentDTO> getAssessment(@PathVariable Long id, @AuthenticationPrincipal(expression = "user") User student) {
         return ResponseEntity.ok(assessmentStudentService.getAssessmentForStudent(id, student));
     }
 
     @PostMapping("/assessments/{id}/start")
-    public ResponseEntity<Long> startAssessment(@PathVariable Long id, @AuthenticationPrincipal User student) {
+    public ResponseEntity<Long> startAssessment(@PathVariable Long id, @AuthenticationPrincipal(expression = "user") User student) {
         return ResponseEntity.ok(assessmentStudentService.startAssessment(id, student));
     }
 
     @PutMapping("/submissions/{id}/answers/{questionId}")
-    public ResponseEntity<Void> saveAnswer(@PathVariable Long id, @PathVariable Long questionId, @RequestBody AnswerUpdateDTO dto, @AuthenticationPrincipal User student) {
+    public ResponseEntity<Void> saveAnswer(@PathVariable Long id, @PathVariable Long questionId, @RequestBody AnswerUpdateDTO dto, @AuthenticationPrincipal(expression = "user") User student) {
         assessmentStudentService.saveAnswer(id, questionId, dto, student);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/submissions/{id}/submit")
-    public ResponseEntity<Void> submitAssessment(@PathVariable Long id, @AuthenticationPrincipal User student) {
+    public ResponseEntity<Void> submitAssessment(@PathVariable Long id, @AuthenticationPrincipal(expression = "user") User student) {
         assessmentStudentService.submitAssessment(id, student);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/submissions/{id}/questions/{qId}/run")
-    public ResponseEntity<CodeExecutionResultDTO> runCode(@PathVariable Long id, @PathVariable Long qId, @RequestBody CodeSubmitRequest dto, @AuthenticationPrincipal User student) {
+    public ResponseEntity<CodeExecutionResultDTO> runCode(@PathVariable Long id, @PathVariable Long qId, @RequestBody CodeSubmitRequest dto, @AuthenticationPrincipal(expression = "user") User student) {
         return ResponseEntity.ok(assessmentStudentService.runCode(id, qId, dto, student));
     }
 
     @PostMapping("/submissions/{id}/questions/{qId}/submit-code")
-    public ResponseEntity<CodeExecutionResultDTO> submitCode(@PathVariable Long id, @PathVariable Long qId, @RequestBody CodeSubmitRequest dto, @AuthenticationPrincipal User student) {
+    public ResponseEntity<CodeExecutionResultDTO> submitCode(@PathVariable Long id, @PathVariable Long qId, @RequestBody CodeSubmitRequest dto, @AuthenticationPrincipal(expression = "user") User student) {
         return ResponseEntity.ok(assessmentStudentService.submitCode(id, qId, dto, student));
+    }
+
+    @GetMapping("/assessments/classroom/{classroomId}")
+    public ResponseEntity<List<StudentAssessmentListDTO>> getClassroomAssessments(@PathVariable Long classroomId, @AuthenticationPrincipal(expression = "user") User student) {
+        return ResponseEntity.ok(assessmentStudentService.getClassroomAssessments(classroomId, student));
     }
 }
