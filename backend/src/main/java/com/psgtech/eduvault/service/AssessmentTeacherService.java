@@ -45,6 +45,7 @@ public class AssessmentTeacherService {
         assessment.setCreatedBy(teacher);
         assessment.setDeadline(dto.getDeadline());
         assessment.setTotalMarks(dto.getTotalMarks());
+        assessment.setDurationMinutes(dto.getDurationMinutes());
         assessment = assessmentRepository.save(assessment);
 
         return getAssessmentForTeacher(assessment.getId(), teacher);
@@ -142,6 +143,21 @@ public class AssessmentTeacherService {
         return getAssessmentForTeacher(assessmentId, teacher);
     }
 
+    @Transactional
+    public void deleteDraftAssessment(Long assessmentId, User teacher) {
+        Assessment assessment = getAndValidateAssessmentAccess(assessmentId, teacher);
+        if (assessment.getPublishedAt() != null) {
+            throw new RuntimeException("Cannot delete a published assessment");
+        }
+        
+        List<Question> questions = questionRepository.findByAssessmentIdOrderByOrderIndexAsc(assessmentId);
+        for (Question q : questions) {
+            deleteQuestion(q.getId(), teacher);
+        }
+        
+        assessmentRepository.delete(assessment);
+    }
+
     @Transactional(readOnly = true)
     public AssessmentTeacherDTO getAssessmentForTeacher(Long assessmentId, User teacher) {
         Assessment assessment = getAndValidateAssessmentAccess(assessmentId, teacher);
@@ -155,6 +171,7 @@ public class AssessmentTeacherService {
         dto.setPublishedAt(assessment.getPublishedAt());
         dto.setDeadline(assessment.getDeadline());
         dto.setTotalMarks(assessment.getTotalMarks());
+        dto.setDurationMinutes(assessment.getDurationMinutes());
         
         dto.setQuestions(questions.stream().map(this::mapToQuestionTeacherDTO).collect(Collectors.toList()));
         return dto;
@@ -177,6 +194,7 @@ public class AssessmentTeacherService {
             dto.setPublishedAt(assessment.getPublishedAt());
             dto.setDeadline(assessment.getDeadline());
             dto.setTotalMarks(assessment.getTotalMarks());
+            dto.setDurationMinutes(assessment.getDurationMinutes());
             return dto;
         }).collect(Collectors.toList());
     }
@@ -249,15 +267,29 @@ public class AssessmentTeacherService {
             ansDto.setQuestionMarks(ans.getQuestion().getMarks());
 
             if (ans.getQuestion().getType() == QuestionType.MCQ) {
-                if (ans.getMcqSelectedOption() != null) {
-                    ansDto.setMcqSelectedOptionId(ans.getMcqSelectedOption().getId());
-                    ansDto.setMcqSelectedOptionText(ans.getMcqSelectedOption().getOptionText());
-                    ansDto.setIsMcqCorrect(ans.getMcqSelectedOption().isCorrect());
+                if (ans.getMcqSelectedOptions() != null) {
+                    List<McqOptionDTO> selectedOptDtos = ans.getMcqSelectedOptions().stream().map(o -> {
+                        McqOptionDTO opt = new McqOptionDTO();
+                        opt.setId(o.getId());
+                        opt.setOptionText(o.getOptionText());
+                        opt.setCorrect(o.isCorrect());
+                        return opt;
+                    }).collect(Collectors.toList());
+                    ansDto.setMcqSelectedOptions(selectedOptDtos);
+                    
+                    List<McqOption> allOptions = mcqOptionRepository.findByQuestionId(ans.getQuestion().getId());
+                    long correctCount = allOptions.stream().filter(McqOption::isCorrect).count();
+                    long selectedCorrectCount = ans.getMcqSelectedOptions().stream().filter(McqOption::isCorrect).count();
+                    long selectedWrongCount = ans.getMcqSelectedOptions().stream().filter(o -> !o.isCorrect()).count();
+                    
+                    ansDto.setIsMcqCorrect(correctCount > 0 && selectedCorrectCount == correctCount && selectedWrongCount == 0);
                 }
             } else if (ans.getQuestion().getType() == QuestionType.DESCRIPTIVE) {
                 ansDto.setDescriptiveText(ans.getDescriptiveText());
                 descriptiveModelAnswerRepository.findByQuestionId(ans.getQuestion().getId())
                     .ifPresent(m -> ansDto.setModelAnswerText(m.getModelAnswerText()));
+            } else if (ans.getQuestion().getType() == QuestionType.CODING) {
+                ansDto.setCodeSubmitted(ans.getCodeSubmitted());
             }
 
             ansDto.setAiScore(ans.getAiScore());

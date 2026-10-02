@@ -13,4 +13,5 @@ import java.util.Optional;
 public interface ClassroomTeacherRepository extends JpaRepository<ClassroomTeacher, Long> {
     List<ClassroomTeacher> findByTeacher(User teacher);
     Optional<ClassroomTeacher> findByClassroomAndTeacher(Classroom classroom, User teacher);
+    void deleteByClassroom(Classroom classroom);
 }

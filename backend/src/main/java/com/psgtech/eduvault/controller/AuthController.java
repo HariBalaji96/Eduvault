@@ -35,7 +35,8 @@ public class AuthController {
                 jwtToken,
                 userDetails.getUser().getRole(),
                 userDetails.getUser().getName(),
-                userDetails.getUser().getEmail()
+                userDetails.getUser().getEmail(),
+                userDetails.getUser().getRegistrationId()
         );
 
         return ResponseEntity.ok(response);

@@ -13,4 +13,5 @@ public interface ClassroomStudentRepository extends JpaRepository<ClassroomStude
     Optional<ClassroomStudent> findByClassroomAndStudent(Classroom classroom, User student);
     java.util.List<ClassroomStudent> findByClassroom(Classroom classroom);
     java.util.List<ClassroomStudent> findByStudentId(Long studentId);
+    void deleteByClassroom(Classroom classroom);
 }

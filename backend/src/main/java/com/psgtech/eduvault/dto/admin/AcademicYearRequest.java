@@ -9,4 +9,7 @@ import lombok.Setter;
 public class AcademicYearRequest {
     @NotBlank(message = "Year label cannot be blank")
     private String yearLabel;
+    
+    @NotBlank(message = "Batch name cannot be blank")
+    private String batchName;
 }

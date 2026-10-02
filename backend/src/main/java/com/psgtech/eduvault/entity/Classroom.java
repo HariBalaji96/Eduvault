@@ -2,6 +2,8 @@ package com.psgtech.eduvault.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Getter
@@ -26,6 +28,7 @@ public class Classroom extends Auditable {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "school_class_id", nullable = false)
     private SchoolClass schoolClass;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)

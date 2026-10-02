@@ -14,4 +14,5 @@ public class QuestionStudentDTO {
     
     // For MCQ
     private List<McqOptionStudentDTO> options;
+    private Boolean isMultipleAnswer;
 }

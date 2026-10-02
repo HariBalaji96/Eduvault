@@ -22,7 +22,7 @@ const AdminClassroomList: React.FC = () => {
         { header: 'ID', accessor: 'id' },
         { header: 'Classroom Name', accessor: 'name' },
         { header: 'Subject', accessor: 'subject' },
-        { header: 'School Class', accessor: (r: any) => r.schoolClassName || 'N/A' },
+
         { header: 'Owner (Teacher)', accessor: 'createdByName' },
         { 
             header: 'Created Date', 

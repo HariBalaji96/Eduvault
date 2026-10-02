@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import client from '../../api/client';
 import { assessmentApi } from '../../services/assessmentApi';
 import PostList from '../../components/classroom/PostList';
+import Modal from '../../components/Modal';
 
 
 const StudentClassroomDetail: React.FC = () => {
@@ -11,6 +12,10 @@ const StudentClassroomDetail: React.FC = () => {
     const [posts, setPosts] = useState<any[]>([]);
     const [assessments, setAssessments] = useState<any[]>([]);
     const [activeTab, setActiveTab] = useState('STREAM');
+    const [isUploadModalOpen, setUploadModalOpen] = useState(false);
+    const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+    const [uploadFileUrl, setUploadFileUrl] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
     
     useEffect(() => {
         fetchClassroom();
@@ -46,13 +51,35 @@ const StudentClassroomDetail: React.FC = () => {
         }
     };
 
+    const handleUploadAssignment = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedPostId || !uploadFileUrl) return;
+        setIsSubmitting(true);
+        try {
+            await client.post(`/student/classrooms/${id}/posts/${selectedPostId}/submit`, { fileUrl: uploadFileUrl });
+            setUploadModalOpen(false);
+            setUploadFileUrl('');
+            setSelectedPostId(null);
+            alert('Assignment submitted successfully!');
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to submit assignment');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const openUploadModal = (postId: number) => {
+        setSelectedPostId(postId);
+        setUploadModalOpen(true);
+    };
+
     if (!classroom) return <div className="flex h-64 items-center justify-center">Loading...</div>;
 
     return (
         <div className="max-w-5xl mx-auto">
             <div className="h-48 bg-gradient-to-r from-green-600 to-teal-700 rounded-xl mb-6 p-8 flex flex-col justify-end text-white shadow-md relative">
                 <h1 className="text-4xl font-bold mb-2">{classroom.name}</h1>
-                <p className="text-lg opacity-90">{classroom.subject} • {classroom.schoolClassName}</p>
+                <p className="text-lg opacity-90">{classroom.subject}</p>
                 <p className="text-sm opacity-80 mt-1">Teacher: {classroom.createdByName}</p>
             </div>
 
@@ -82,7 +109,7 @@ const StudentClassroomDetail: React.FC = () => {
                             </div>
                         </div>
                         <div className="md:col-span-3">
-                            <PostList posts={posts} />
+                            <PostList posts={posts} isTeacher={false} onUploadAssignment={openUploadModal} />
                         </div>
                     </>
                 )}
@@ -112,12 +139,12 @@ const StudentClassroomDetail: React.FC = () => {
                                             </div>
                                             <div>
                                                 {a.status === 'NOT_STARTED' && (
-                                                    <Link to={`/student/assessments/${a.id}`} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                                                    <Link to={`/student/assessments/${a.id}/take`} className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
                                                         Start
                                                     </Link>
                                                 )}
                                                 {a.status === 'IN_PROGRESS' && (
-                                                    <Link to={`/student/assessments/${a.id}`} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
+                                                    <Link to={`/student/assessments/${a.id}/take`} className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors">
                                                         Resume
                                                     </Link>
                                                 )}
@@ -135,6 +162,26 @@ const StudentClassroomDetail: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <Modal isOpen={isUploadModalOpen} onClose={() => setUploadModalOpen(false)} title="Upload Assignment">
+                <form onSubmit={handleUploadAssignment} className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium mb-1">Assignment File URL</label>
+                        <input 
+                            type="url" 
+                            required 
+                            value={uploadFileUrl} 
+                            onChange={e => setUploadFileUrl(e.target.value)} 
+                            placeholder="https://drive.google.com/..." 
+                            className="modern-input"
+                        />
+                        <p className="text-xs text-gray-500 mt-2">Please upload your assignment to Google Drive, Dropbox, or a similar service and paste the public link here.</p>
+                    </div>
+                    <button type="submit" disabled={isSubmitting} className="modern-button w-full mt-2 shadow-primary/20">
+                        {isSubmitting ? 'Submitting...' : 'Submit Assignment'}
+                    </button>
+                </form>
+            </Modal>
         </div>
     );
 };

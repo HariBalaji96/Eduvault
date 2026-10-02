@@ -32,4 +32,6 @@ public class Assessment extends Auditable {
 
     @Column(nullable = false)
     private Double totalMarks;
+
+    private Integer durationMinutes;
 }

@@ -2,6 +2,7 @@ package com.psgtech.eduvault.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -23,8 +24,12 @@ public class ClassroomPost extends Auditable {
     private User author;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "VARCHAR(255)")
     private PostType type;
+
+    private String title;
+
+    private LocalDateTime dueDate;
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;

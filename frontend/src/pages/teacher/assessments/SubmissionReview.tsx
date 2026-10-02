@@ -61,6 +61,17 @@ export default function SubmissionReview() {
                                 <div className="text-yellow-600 dark:text-yellow-500 text-sm italic mt-2">Manual evaluation component is coming in the next phase!</div>
                             </div>
                         )}
+                        {ans.questionType === 'CODING' && (
+                            <div className="space-y-4">
+                                <div className="bg-gray-900 p-4 rounded border border-gray-700">
+                                    <div className="text-sm text-gray-400 mb-2">Submitted Code:</div>
+                                    <pre className="text-sm font-mono text-gray-100 overflow-x-auto p-2 bg-black/30 rounded">
+                                        <code>{ans.codeSubmitted || '// No code submitted'}</code>
+                                    </pre>
+                                </div>
+                                <div className="text-yellow-600 dark:text-yellow-500 text-sm italic mt-2">Code execution results and test cases will be available in the next phase!</div>
+                            </div>
+                        )}
                     </div>
                 ))}
             </div>

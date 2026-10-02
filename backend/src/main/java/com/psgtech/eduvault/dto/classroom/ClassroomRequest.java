@@ -1,7 +1,8 @@
 package com.psgtech.eduvault.dto.classroom;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Getter;
+import java.util.List;
 import lombok.Setter;
 
 @Getter
@@ -11,7 +12,8 @@ public class ClassroomRequest {
     private String name;
     @NotBlank
     private String subject;
-    private String description;
-    @NotNull
+    @jakarta.validation.constraints.NotNull
     private Long schoolClassId;
+    private String description;
+    private List<Long> studentIds;
 }

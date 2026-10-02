@@ -12,6 +12,7 @@ interface Student {
     email: string;
     active: boolean;
     createdAt: string;
+    registrationId?: string;
     schoolClassId?: number;
     schoolClassName?: string;
 }
@@ -22,13 +23,16 @@ const StudentManagement: React.FC = () => {
     const [isBulkModalOpen, setBulkModalOpen] = useState(false);
     const [isEditModalOpen, setEditModalOpen] = useState(false);
     const [editingStudentId, setEditingStudentId] = useState<number | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
     
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
+    const [registrationId, setRegistrationId] = useState('');
     const [password, setPassword] = useState('');
-    const [schoolClassId, setSchoolClassId] = useState<number | ''>('');
+    const [schoolClassId, setSchoolClassId] = useState('');
     const [schoolClasses, setSchoolClasses] = useState<any[]>([]);
+
     
     const [bulkData, setBulkData] = useState<any[]>([]);
     const [bulkReport, setBulkReport] = useState<any>(null);
@@ -45,10 +49,10 @@ const StudentManagement: React.FC = () => {
 
     const fetchClasses = async () => {
         try {
-            const res = await client.get('/admin/classes');
+            const res = await client.get('/admin/school-classes');
             setSchoolClasses(res.data);
         } catch (err) {
-            console.error("Failed to fetch classes", err);
+            console.error(err);
         }
     };
 
@@ -60,9 +64,9 @@ const StudentManagement: React.FC = () => {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await client.post('/admin/students', { name: `${firstName} ${lastName}`.trim(), email, password, schoolClassId: schoolClassId === '' ? null : schoolClassId });
+            await client.post('/admin/students', { name: `${firstName} ${lastName}`.trim(), email, password, registrationId, schoolClassId: schoolClassId ? Number(schoolClassId) : null });
             setCreateModalOpen(false);
-            setFirstName(''); setLastName(''); setEmail(''); setPassword(''); setSchoolClassId('');
+            setFirstName(''); setLastName(''); setEmail(''); setPassword(''); setRegistrationId(''); setSchoolClassId('');
             fetchStudents();
         } catch (err) {
             console.error("Create failed", err);
@@ -75,17 +79,19 @@ const StudentManagement: React.FC = () => {
         setFirstName(student.firstName || '');
         setLastName(student.lastName || '');
         setEmail(student.email);
+        setRegistrationId(student.registrationId || '');
+        setSchoolClassId(student.schoolClassId ? student.schoolClassId.toString() : '');
         setPassword('');
-        setSchoolClassId(student.schoolClassId || '');
+
         setEditModalOpen(true);
     };
 
     const handleEditSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await client.put(`/admin/students/${editingStudentId}`, { name: `${firstName} ${lastName}`.trim(), email, password, schoolClassId: schoolClassId === '' ? null : schoolClassId });
+            await client.put(`/admin/students/${editingStudentId}`, { name: `${firstName} ${lastName}`.trim(), email, password, registrationId, schoolClassId: schoolClassId ? Number(schoolClassId) : null });
             setEditModalOpen(false);
-            setFirstName(''); setLastName(''); setEmail(''); setPassword(''); setSchoolClassId(''); setEditingStudentId(null);
+            setFirstName(''); setLastName(''); setEmail(''); setPassword(''); setRegistrationId(''); setSchoolClassId(''); setEditingStudentId(null);
             fetchStudents();
         } catch (err) {
             console.error("Edit failed", err);
@@ -121,7 +127,11 @@ const StudentManagement: React.FC = () => {
                 header: true,
                 skipEmptyLines: true,
                 complete: (results) => {
-                    setBulkData(results.data);
+                    const mappedData = results.data.map((row: any) => ({
+                        ...row,
+                        name: `${row.firstName || ''} ${row.lastName || ''}`.trim(),
+                    }));
+                    setBulkData(mappedData);
                     setBulkReport(null);
                 }
             });
@@ -143,9 +153,11 @@ const StudentManagement: React.FC = () => {
 
     const columns = [
         { header: 'ID', accessor: 'id' as keyof Student },
+        { header: 'Roll No', accessor: (row: Student) => row.registrationId || '-' },
         { header: 'Name', accessor: (row: Student) => `${row.firstName} ${row.lastName}`.trim() },
         { header: 'Email', accessor: 'email' as keyof Student },
         { header: 'Class', accessor: (row: Student) => row.schoolClassName || '-' },
+
         { header: 'Status', accessor: (row: Student) => (
             <span className={`px-2 py-1 text-xs rounded-full ${row.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                 {row.active ? 'Active' : 'Inactive'}
@@ -167,6 +179,15 @@ const StudentManagement: React.FC = () => {
         <div>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Student Management</h1>
+                <div className="flex-1 max-w-md mx-4">
+                    <input 
+                        type="text" 
+                        placeholder="Search students by name, email or roll no..." 
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                    />
+                </div>
                 <div className="flex gap-2">
                     <button onClick={() => setCreateModalOpen(true)} className="modern-button shadow-primary/20">
                         <Plus size={18} /> Add Student
@@ -177,7 +198,18 @@ const StudentManagement: React.FC = () => {
                 </div>
             </div>
 
-            <DataTable data={students} columns={columns} keyExtractor={(s) => s.id} />
+            <DataTable 
+                data={students.filter(s => {
+                    const q = searchQuery.toLowerCase();
+                    return (
+                        `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase().includes(q) ||
+                        s.email.toLowerCase().includes(q) ||
+                        (s.registrationId && s.registrationId.toLowerCase().includes(q))
+                    );
+                })} 
+                columns={columns} 
+                keyExtractor={(s) => s.id} 
+            />
 
             <Modal isOpen={isCreateModalOpen} onClose={() => setCreateModalOpen(false)} title="Create Student">
                 <form onSubmit={handleCreate} className="space-y-4">
@@ -191,23 +223,32 @@ const StudentManagement: React.FC = () => {
                             <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="modern-input" />
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Email</label>
-                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="modern-input" />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Email</label>
+                            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="modern-input" />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Roll No</label>
+                            <input type="text" required value={registrationId} onChange={e => setRegistrationId(e.target.value)} className="modern-input" />
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Password</label>
-                        <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="modern-input" />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Class / Group</label>
+                            <select value={schoolClassId} onChange={e => setSchoolClassId(e.target.value)} className="modern-input">
+                                <option value="">None</option>
+                                {schoolClasses.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name} ({c.batchName})</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Password</label>
+                            <input type="password" required value={password} onChange={e => setPassword(e.target.value)} className="modern-input" />
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Class</label>
-                        <select value={schoolClassId} onChange={e => setSchoolClassId(e.target.value === '' ? '' : Number(e.target.value))} className="modern-input">
-                            <option value="">Select a class (optional)</option>
-                            {schoolClasses.map((cls) => (
-                                <option key={cls.id} value={cls.id}>{cls.name}</option>
-                            ))}
-                        </select>
-                    </div>
+
                     <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Create</button>
                 </form>
             </Modal>
@@ -224,23 +265,32 @@ const StudentManagement: React.FC = () => {
                             <input type="text" required value={lastName} onChange={e => setLastName(e.target.value)} className="modern-input" />
                         </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Email</label>
-                        <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="modern-input" />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Email</label>
+                            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} className="modern-input" />
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Roll No</label>
+                            <input type="text" required value={registrationId} onChange={e => setRegistrationId(e.target.value)} className="modern-input" />
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Password (Leave blank to keep current)</label>
-                        <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="modern-input" />
+                    <div className="flex gap-4">
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Class / Group</label>
+                            <select value={schoolClassId} onChange={e => setSchoolClassId(e.target.value)} className="modern-input">
+                                <option value="">None</option>
+                                {schoolClasses.map(c => (
+                                    <option key={c.id} value={c.id}>{c.name} ({c.batchName})</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex-1">
+                            <label className="block text-sm font-medium mb-1">Password (Leave blank to keep current)</label>
+                            <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="modern-input" />
+                        </div>
                     </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1">Class</label>
-                        <select value={schoolClassId} onChange={e => setSchoolClassId(e.target.value === '' ? '' : Number(e.target.value))} className="modern-input">
-                            <option value="">Select a class (optional)</option>
-                            {schoolClasses.map((cls) => (
-                                <option key={cls.id} value={cls.id}>{cls.name}</option>
-                            ))}
-                        </select>
-                    </div>
+
                     <button type="submit" className="modern-button w-full mt-2 shadow-primary/20">Save Changes</button>
                 </form>
             </Modal>
@@ -249,7 +299,7 @@ const StudentManagement: React.FC = () => {
                 {!bulkReport ? (
                     <div className="space-y-4">
                         <input type="file" accept=".csv" onChange={handleFileUpload} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary-dark hover:file:bg-primary/20" />
-                        <p className="text-xs text-gray-500">CSV must have headers: name, email, password</p>
+                        <p className="text-xs text-gray-500">CSV must have headers: firstName, lastName, email, password, registrationId</p>
                         
                         {bulkData.length > 0 && (
                             <div className="mt-4">

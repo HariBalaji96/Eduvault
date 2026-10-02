@@ -9,4 +9,5 @@ public class AssessmentCreateDTO {
     private Long classroomId;
     private Double totalMarks;
     private LocalDateTime deadline;
+    private Integer durationMinutes;
 }

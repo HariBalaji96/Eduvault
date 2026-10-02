@@ -17,7 +17,8 @@ public class DemoDataSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final AcademicYearRepository academicYearRepository;
-    private final SchoolClassRepository schoolClassRepository;
+    private final com.psgtech.eduvault.repository.SchoolClassRepository schoolClassRepository;
+
     private final ClassroomRepository classroomRepository;
     private final ClassroomTeacherRepository classroomTeacherRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
@@ -46,6 +47,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             u.setEmail("teacher@eduvault.com");
             u.setPasswordHash(passwordEncoder.encode("password123"));
             u.setRole(Role.TEACHER);
+            u.setRegistrationId("CAA01");
             return userRepository.save(u);
         });
 
@@ -55,6 +57,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             u.setEmail("teacher2@eduvault.com");
             u.setPasswordHash(passwordEncoder.encode("password123"));
             u.setRole(Role.TEACHER);
+            u.setRegistrationId("CAA02");
             return userRepository.save(u);
         });
 
@@ -64,6 +67,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             u.setEmail("teacher3@eduvault.com");
             u.setPasswordHash(passwordEncoder.encode("password123"));
             u.setRole(Role.TEACHER);
+            u.setRegistrationId("CAA03");
             return userRepository.save(u);
         });
 
@@ -73,6 +77,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             u.setEmail("student1@eduvault.com");
             u.setPasswordHash(passwordEncoder.encode("password123"));
             u.setRole(Role.STUDENT);
+            u.setRegistrationId("25MX301");
             return userRepository.save(u);
         });
 
@@ -82,6 +87,7 @@ public class DemoDataSeeder implements CommandLineRunner {
             u.setEmail("student2@eduvault.com");
             u.setPasswordHash(passwordEncoder.encode("password123"));
             u.setRole(Role.STUDENT);
+            u.setRegistrationId("25MX302");
             return userRepository.save(u);
         });
 
@@ -95,13 +101,16 @@ public class DemoDataSeeder implements CommandLineRunner {
         AcademicYear year = academicYearRepository.findByYearLabel("2025-2026").orElseGet(() -> {
             AcademicYear y = new AcademicYear();
             y.setYearLabel("2025-2026");
+            y.setBatchName("Batch 2025");
             return academicYearRepository.save(y);
         });
 
-        SchoolClass sc = new SchoolClass();
-        sc.setName("Grade 10 - Section A");
-        sc.setAcademicYear(year);
-        sc = schoolClassRepository.save(sc);
+        SchoolClass sc = schoolClassRepository.findAll().stream().findFirst().orElseGet(() -> {
+            SchoolClass s = new SchoolClass();
+            s.setName("BSc Computer Science A");
+            s.setAcademicYear(year);
+            return schoolClassRepository.save(s);
+        });
 
         // 3. Create Classroom
         Classroom cs101 = new Classroom();

@@ -23,12 +23,49 @@ import PracticePage from './pages/student/practice/PracticePage';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentClassroomDetail from './pages/student/StudentClassroomDetail';
 
+import { useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
+
+const RouteTitleUpdater = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const path = location.pathname;
+    let title = 'Eduvault';
+
+    if (path === '/login') title = 'Login';
+    else if (path === '/unauthorized') title = 'Unauthorized';
+    else if (path === '/admin') title = 'Dashboard | Admin';
+    else if (path.startsWith('/admin/students')) title = 'Students | Admin';
+    else if (path.startsWith('/admin/teachers')) title = 'Teachers | Admin';
+    else if (path.startsWith('/admin/classes')) title = 'Classes | Admin';
+    else if (path.startsWith('/admin/classrooms')) title = 'Classrooms | Admin';
+    else if (path === '/teacher') title = 'Dashboard | Teacher';
+    else if (path.match(/\/teacher\/classrooms\/\d+/)) title = 'Classroom | Teacher';
+    else if (path === '/teacher/assessments/build') title = 'Build Assessment | Teacher';
+    else if (path.match(/\/teacher\/assessments\/\d+\/edit/)) title = 'Edit Assessment | Teacher';
+    else if (path.match(/\/teacher\/assessments\/\d+\/results/)) title = 'Assessment Results | Teacher';
+    else if (path.match(/\/teacher\/submissions\/\d+/)) title = 'Review Submission | Teacher';
+    else if (path === '/student/dashboard') title = 'Dashboard | Student';
+    else if (path.match(/\/student\/classrooms\/\d+/)) title = 'Classroom | Student';
+    else if (path === '/student/assessments') title = 'Assessments | Student';
+    else if (path.match(/\/student\/assessments\/\d+\/take/)) title = 'Take Assessment | Student';
+    else if (path.match(/\/student\/assessments\/\d+\/result/)) title = 'Assessment Result | Student';
+    else if (path === '/student/practice') title = 'Practice | Student';
+
+    document.title = title === 'Eduvault' ? title : `${title} | Eduvault`;
+  }, [location]);
+
+  return null;
+};
+
 const Unauthorized = () => <div className="p-8"><h1 className="text-2xl font-bold text-red-500">Unauthorized</h1></div>;
 
 function App() {
   return (
     <AuthProvider>
       <Router>
+        <RouteTitleUpdater />
         <Routes>
           <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="/login" element={<Login />} />
@@ -49,6 +86,7 @@ function App() {
                 <Route index element={<TeacherDashboard />} />
                 <Route path="classrooms/:id" element={<ClassroomDetail />} />
                 <Route path="assessments/build" element={<AssessmentBuilder />} />
+                <Route path="assessments/:id/edit" element={<AssessmentBuilder />} />
                 <Route path="assessments/:id/results" element={<AssessmentResults />} />
                 <Route path="submissions/:id" element={<SubmissionReview />} />
             </Route>

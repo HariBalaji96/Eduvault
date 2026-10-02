@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { assessmentApi } from '../../../services/assessmentApi';
 import api from '../../../api/client';
 import { Plus, Trash2, CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function AssessmentBuilder() {
+    const { id } = useParams();
+    const location = useLocation();
     const [step, setStep] = useState(1);
     const [assessmentId, setAssessmentId] = useState<number | null>(null);
     const [classrooms, setClassrooms] = useState<any[]>([]);
@@ -14,6 +16,8 @@ export default function AssessmentBuilder() {
     const [classroomId, setClassroomId] = useState('');
     const [deadline, setDeadline] = useState('');
     const [totalMarks, setTotalMarks] = useState('');
+    const [hasTimer, setHasTimer] = useState(false);
+    const [durationMinutes, setDurationMinutes] = useState('');
 
     // Step 2 State
     const [assessmentData, setAssessmentData] = useState<any>(null);
@@ -32,8 +36,19 @@ export default function AssessmentBuilder() {
     const navigate = useNavigate();
 
     useEffect(() => {
+        const searchParams = new URLSearchParams(location.search);
+        const initialClassroomId = searchParams.get('classroomId');
+        if (initialClassroomId) {
+            setClassroomId(initialClassroomId);
+        }
+
         api.get('/teacher/classrooms').then(res => setClassrooms(res.data));
-    }, []);
+        if (id) {
+            setAssessmentId(Number(id));
+            fetchAssessment(Number(id));
+            setStep(2);
+        }
+    }, [id, location]);
 
     const fetchAssessment = async (id: number) => {
         const data = await assessmentApi.getTeacherAssessment(id);
@@ -47,7 +62,8 @@ export default function AssessmentBuilder() {
                 title,
                 classroomId: Number(classroomId),
                 totalMarks: Number(totalMarks),
-                deadline: new Date(deadline).toISOString()
+                deadline: new Date(deadline).toISOString(),
+                durationMinutes: hasTimer ? Number(durationMinutes) : null
             });
             setAssessmentId(data.id);
             setAssessmentData(data);
@@ -141,6 +157,21 @@ export default function AssessmentBuilder() {
                                 <input required type="number" min="1" className="w-full p-2 border rounded focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600" value={totalMarks} onChange={e => setTotalMarks(e.target.value)} />
                             </div>
                         </div>
+                        
+                        <div className="pt-2 border-t dark:border-gray-700">
+                            <label className="flex items-center gap-3 cursor-pointer mb-3">
+                                <input type="checkbox" className="w-5 h-5 text-primary rounded" checked={hasTimer} onChange={e => setHasTimer(e.target.checked)} />
+                                <span className="font-medium text-gray-800 dark:text-gray-200">Enable Time Limit</span>
+                            </label>
+                            
+                            {hasTimer && (
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Duration (Minutes)</label>
+                                    <input required type="number" min="1" className="w-full md:w-1/2 p-2 border rounded focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600" value={durationMinutes} onChange={e => setDurationMinutes(e.target.value)} placeholder="e.g. 60" />
+                                </div>
+                            )}
+                        </div>
+
                         <button type="submit" className="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-primary-dark transition">Create Draft</button>
                     </form>
                 </div>
@@ -153,9 +184,14 @@ export default function AssessmentBuilder() {
                             <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100">{assessmentData.title}</h2>
                             <p className="text-primary-dark dark:text-primary text-sm">Target Marks: {assessmentData.totalMarks} | Current: {currentMarks}</p>
                         </div>
-                        <button onClick={handlePublish} className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition font-medium shadow-sm">
-                            <CheckCircle2 size={18} /> Publish Assessment
-                        </button>
+                        <div className="flex gap-3">
+                            <button onClick={() => navigate(-1)} className="flex items-center gap-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 px-5 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-medium shadow-sm">
+                                Save as Draft
+                            </button>
+                            <button onClick={handlePublish} className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition font-medium shadow-sm">
+                                <CheckCircle2 size={18} /> Publish Assessment
+                            </button>
+                        </div>
                     </div>
 
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">

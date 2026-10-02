@@ -17,6 +17,9 @@ public class UserResponse {
     private Role role;
     private boolean active;
     private LocalDateTime createdAt;
+
+    private String registrationId;
+    
     private Long schoolClassId;
     private String schoolClassName;
 }

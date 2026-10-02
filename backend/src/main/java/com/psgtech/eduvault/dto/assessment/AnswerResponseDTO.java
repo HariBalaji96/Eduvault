@@ -1,6 +1,7 @@
 package com.psgtech.eduvault.dto.assessment;
 
 import lombok.Data;
+import java.util.List;
 import com.psgtech.eduvault.entity.QuestionType;
 
 @Data
@@ -12,13 +13,15 @@ public class AnswerResponseDTO {
     private Double questionMarks;
     
     // For MCQ
-    private Long mcqSelectedOptionId;
-    private String mcqSelectedOptionText;
+    private List<McqOptionDTO> mcqSelectedOptions;
     private Boolean isMcqCorrect;
     
     // For Descriptive
     private String descriptiveText;
     private String modelAnswerText;
+    
+    // For Coding
+    private String codeSubmitted;
     
     private Double aiScore;
     private String aiEvaluationNotes;

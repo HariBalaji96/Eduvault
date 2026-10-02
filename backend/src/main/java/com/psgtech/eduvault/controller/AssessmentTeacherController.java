@@ -46,6 +46,12 @@ public class AssessmentTeacherController {
         return ResponseEntity.ok(assessmentTeacherService.publishAssessment(id, teacher));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteDraftAssessment(@PathVariable Long id, @AuthenticationPrincipal(expression = "user") User teacher) {
+        assessmentTeacherService.deleteDraftAssessment(id, teacher);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<AssessmentTeacherDTO> getAssessment(@PathVariable Long id, @AuthenticationPrincipal(expression = "user") User teacher) {
         return ResponseEntity.ok(assessmentTeacherService.getAssessmentForTeacher(id, teacher));

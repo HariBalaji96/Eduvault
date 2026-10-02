@@ -31,6 +31,11 @@ public class User extends Auditable {
     @Column(nullable = false)
     private boolean active = true;
 
+
+
+    @Column(name = "registration_id", unique = true)
+    private String registrationId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "school_class_id")
     private SchoolClass schoolClass;

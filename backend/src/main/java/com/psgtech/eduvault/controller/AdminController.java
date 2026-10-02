@@ -2,9 +2,7 @@ package com.psgtech.eduvault.controller;
 
 import com.psgtech.eduvault.dto.admin.*;
 import com.psgtech.eduvault.entity.AcademicYear;
-import com.psgtech.eduvault.entity.SchoolClass;
 import com.psgtech.eduvault.service.AcademicYearService;
-import com.psgtech.eduvault.service.SchoolClassService;
 import com.psgtech.eduvault.service.StudentService;
 import com.psgtech.eduvault.service.TeacherService;
 import com.psgtech.eduvault.service.ClassroomService;
@@ -21,20 +19,22 @@ public class AdminController {
     private final StudentService studentService;
     private final TeacherService teacherService;
     private final AcademicYearService academicYearService;
-    private final SchoolClassService schoolClassService;
+
     private final com.psgtech.eduvault.service.AdminUserService adminUserService;
     private final ClassroomService classroomService;
+    private final com.psgtech.eduvault.service.SchoolClassService schoolClassService;
 
     public AdminController(StudentService studentService, TeacherService teacherService, 
-                           AcademicYearService academicYearService, SchoolClassService schoolClassService,
+                           AcademicYearService academicYearService,
                            com.psgtech.eduvault.service.AdminUserService adminUserService,
-                           ClassroomService classroomService) {
+                           ClassroomService classroomService,
+                           com.psgtech.eduvault.service.SchoolClassService schoolClassService) {
         this.studentService = studentService;
         this.teacherService = teacherService;
         this.academicYearService = academicYearService;
-        this.schoolClassService = schoolClassService;
         this.adminUserService = adminUserService;
         this.classroomService = classroomService;
+        this.schoolClassService = schoolClassService;
     }
 
     // --- Admins ---
@@ -129,27 +129,29 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
-    // --- Classes ---
-    @PostMapping("/classes")
-    public ResponseEntity<SchoolClass> createClass(@Valid @RequestBody SchoolClassRequest request) {
+    // --- School Classes ---
+    @PostMapping("/school-classes")
+    public ResponseEntity<SchoolClassResponse> createSchoolClass(@Valid @RequestBody SchoolClassRequest request) {
         return ResponseEntity.ok(schoolClassService.create(request));
     }
-    
-    @GetMapping("/classes")
-    public ResponseEntity<List<SchoolClass>> getAllClasses() {
+
+    @GetMapping("/school-classes")
+    public ResponseEntity<List<SchoolClassResponse>> getAllSchoolClasses() {
         return ResponseEntity.ok(schoolClassService.getAll());
     }
 
-    @PutMapping("/classes/{id}")
-    public ResponseEntity<SchoolClass> updateClass(@PathVariable Long id, @Valid @RequestBody SchoolClassRequest request) {
+    @PutMapping("/school-classes/{id}")
+    public ResponseEntity<SchoolClassResponse> updateSchoolClass(@PathVariable Long id, @Valid @RequestBody SchoolClassRequest request) {
         return ResponseEntity.ok(schoolClassService.update(id, request));
     }
 
-    @DeleteMapping("/classes/{id}")
-    public ResponseEntity<Void> deleteClass(@PathVariable Long id) {
+    @DeleteMapping("/school-classes/{id}")
+    public ResponseEntity<Void> deleteSchoolClass(@PathVariable Long id) {
         schoolClassService.delete(id);
         return ResponseEntity.ok().build();
     }
+
+
 
     // --- Classrooms ---
     @GetMapping("/classrooms")

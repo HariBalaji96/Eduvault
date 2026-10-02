@@ -2,6 +2,7 @@ package com.psgtech.eduvault.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.util.List;
 
 @Entity
 @Getter
@@ -22,9 +23,13 @@ public class AnswerResponse extends Auditable {
     @JoinColumn(name = "question_id", nullable = false)
     private Question question;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "mcq_selected_option_id")
-    private McqOption mcqSelectedOption;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "answer_response_mcq_options",
+        joinColumns = @JoinColumn(name = "answer_response_id"),
+        inverseJoinColumns = @JoinColumn(name = "mcq_option_id")
+    )
+    private List<McqOption> mcqSelectedOptions;
 
     @Column(columnDefinition = "TEXT")
     private String descriptiveText;

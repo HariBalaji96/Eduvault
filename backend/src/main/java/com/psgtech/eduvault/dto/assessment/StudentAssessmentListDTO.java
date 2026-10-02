@@ -13,5 +13,6 @@ public class StudentAssessmentListDTO {
     private LocalDateTime publishedAt;
     private LocalDateTime deadline;
     private Double totalMarks;
+    private Integer durationMinutes;
     private SubmissionStatus status; // NOT_STARTED, IN_PROGRESS, SUBMITTED
 }

@@ -18,16 +18,19 @@ public class ClassroomService {
     private final ClassroomTeacherRepository classroomTeacherRepository;
     private final ClassroomStudentRepository classroomStudentRepository;
     private final ClassroomPostRepository classroomPostRepository;
+    private final AssignmentSubmissionRepository assignmentSubmissionRepository;
     private final UserRepository userRepository;
     private final SchoolClassRepository schoolClassRepository;
 
     public ClassroomService(ClassroomRepository classroomRepository, ClassroomTeacherRepository classroomTeacherRepository,
                             ClassroomStudentRepository classroomStudentRepository, ClassroomPostRepository classroomPostRepository,
+                            AssignmentSubmissionRepository assignmentSubmissionRepository,
                             UserRepository userRepository, SchoolClassRepository schoolClassRepository) {
         this.classroomRepository = classroomRepository;
         this.classroomTeacherRepository = classroomTeacherRepository;
         this.classroomStudentRepository = classroomStudentRepository;
         this.classroomPostRepository = classroomPostRepository;
+        this.assignmentSubmissionRepository = assignmentSubmissionRepository;
         this.userRepository = userRepository;
         this.schoolClassRepository = schoolClassRepository;
     }
@@ -50,10 +53,7 @@ public class ClassroomService {
                 .orElseThrow(() -> new IllegalArgumentException("Classroom not found"));
         
         boolean hasAccess = false;
-        if (student.getSchoolClass() != null && classroom.getSchoolClass() != null 
-            && student.getSchoolClass().getId().equals(classroom.getSchoolClass().getId())) {
-            hasAccess = true;
-        } else if (classroomStudentRepository.findByClassroomAndStudent(classroom, student).isPresent()) {
+        if (classroomStudentRepository.findByClassroomAndStudent(classroom, student).isPresent()) {
             hasAccess = true;
         }
         
@@ -66,14 +66,16 @@ public class ClassroomService {
     @Transactional
     public ClassroomResponse createClassroom(ClassroomRequest request, String email) {
         User teacher = getUserByEmail(email);
-        SchoolClass schoolClass = schoolClassRepository.findById(request.getSchoolClassId())
-                .orElseThrow(() -> new IllegalArgumentException("School class not found"));
 
         Classroom classroom = new Classroom();
         classroom.setName(request.getName());
         classroom.setSubject(request.getSubject());
-        classroom.setDescription(request.getDescription());
+        
+        SchoolClass schoolClass = schoolClassRepository.findById(request.getSchoolClassId())
+                .orElseThrow(() -> new IllegalArgumentException("School Class not found"));
         classroom.setSchoolClass(schoolClass);
+        
+        classroom.setDescription(request.getDescription());
         classroom.setCreatedBy(teacher);
         classroom = classroomRepository.save(classroom);
 
@@ -83,13 +85,10 @@ public class ClassroomService {
         ct.setPermissionLevel(PermissionLevel.OWNER);
         classroomTeacherRepository.save(ct);
 
-        // Auto-enroll all students mapped to this SchoolClass
-        List<User> students = userRepository.findBySchoolClassIdAndRole(schoolClass.getId(), Role.STUDENT);
-        for (User student : students) {
-            ClassroomStudent cs = new ClassroomStudent();
-            cs.setClassroom(classroom);
-            cs.setStudent(student);
-            classroomStudentRepository.save(cs);
+        if (request.getStudentIds() != null && !request.getStudentIds().isEmpty()) {
+            StudentEnrollRequest enrollRequest = new StudentEnrollRequest();
+            enrollRequest.setStudentIds(request.getStudentIds());
+            enrollStudents(classroom.getId(), enrollRequest, email);
         }
 
         return mapToClassroomResponse(classroom);
@@ -107,10 +106,6 @@ public class ClassroomService {
     public List<ClassroomResponse> getStudentClassrooms(String email) {
         User student = getUserByEmail(email);
         java.util.Set<Classroom> classrooms = new java.util.HashSet<>();
-        
-        if (student.getSchoolClass() != null) {
-            classrooms.addAll(classroomRepository.findBySchoolClass(student.getSchoolClass()));
-        }
         
         classroomStudentRepository.findByStudentId(student.getId()).forEach(cs -> {
             classrooms.add(cs.getClassroom());
@@ -175,16 +170,23 @@ public class ClassroomService {
         }
     }
 
+    @Transactional
+    public void removeStudent(Long id, Long studentId, String email) {
+        ClassroomTeacher ct = verifyTeacherAccess(id, email);
+        if (ct.getPermissionLevel() != PermissionLevel.OWNER) {
+            throw new AccessDeniedException("Only the owner can remove students");
+        }
+        User student = userRepository.findById(studentId).orElseThrow(() -> new IllegalArgumentException("Student not found"));
+        classroomStudentRepository.findByClassroomAndStudent(ct.getClassroom(), student).ifPresent(classroomStudentRepository::delete);
+    }
+
     @Transactional(readOnly = true)
     public List<UserResponse> getStudents(Long id, String email) {
         ClassroomTeacher ct = verifyTeacherAccess(id, email);
         
         java.util.Set<User> allStudents = new java.util.HashSet<>();
         
-        if (ct.getClassroom().getSchoolClass() != null) {
-            allStudents.addAll(userRepository.findBySchoolClassIdAndRole(ct.getClassroom().getSchoolClass().getId(), Role.STUDENT));
-        }
-        
+
         classroomStudentRepository.findByClassroom(ct.getClassroom()).forEach(cs -> {
             allStudents.add(cs.getStudent());
         });
@@ -201,10 +203,86 @@ public class ClassroomService {
         post.setClassroom(ct.getClassroom());
         post.setAuthor(ct.getTeacher());
         post.setType(request.getType());
+        post.setTitle(request.getTitle());
         post.setContent(request.getContent());
+        post.setDueDate(request.getDueDate());
         post.setAttachmentUrl(request.getAttachmentUrl());
         post = classroomPostRepository.save(post);
         return mapToPostResponse(post);
+    }
+
+    @Transactional
+    public PostResponse editPost(Long id, Long postId, PostRequest request, String email) {
+        ClassroomTeacher ct = verifyTeacherAccess(id, email);
+        ClassroomPost post = classroomPostRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        if (!post.getClassroom().getId().equals(ct.getClassroom().getId())) {
+            throw new IllegalArgumentException("Post does not belong to this classroom");
+        }
+        
+        post.setTitle(request.getTitle());
+        post.setContent(request.getContent());
+        post.setDueDate(request.getDueDate());
+        post.setAttachmentUrl(request.getAttachmentUrl());
+        
+        post = classroomPostRepository.save(post);
+        return mapToPostResponse(post);
+    }
+
+    @Transactional
+    public void deletePost(Long id, Long postId, String email) {
+        ClassroomTeacher ct = verifyTeacherAccess(id, email);
+        ClassroomPost post = classroomPostRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        if (!post.getClassroom().getId().equals(ct.getClassroom().getId())) {
+            throw new IllegalArgumentException("Post does not belong to this classroom");
+        }
+        
+        if (post.getType() == PostType.ASSIGNMENT) {
+            assignmentSubmissionRepository.deleteByPost(post);
+        }
+        
+        classroomPostRepository.delete(post);
+    }
+
+    @Transactional
+    public AssignmentSubmissionResponse submitAssignment(Long id, Long postId, AssignmentSubmissionRequest request, String email) {
+        Classroom classroom = verifyStudentAccess(id, email);
+        User student = getUserByEmail(email);
+        
+        ClassroomPost post = classroomPostRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+        
+        if (!post.getClassroom().getId().equals(classroom.getId()) || post.getType() != PostType.ASSIGNMENT) {
+            throw new IllegalArgumentException("Invalid assignment post");
+        }
+        
+        AssignmentSubmission submission = assignmentSubmissionRepository.findByPostAndStudent(post, student)
+                .orElse(new AssignmentSubmission());
+                
+        submission.setPost(post);
+        submission.setStudent(student);
+        submission.setFileUrl(request.getFileUrl());
+        submission.setSubmittedAt(java.time.LocalDateTime.now());
+        
+        submission = assignmentSubmissionRepository.save(submission);
+        
+        return mapToAssignmentSubmissionResponse(submission);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AssignmentSubmissionResponse> getAssignmentSubmissions(Long id, Long postId, String email) {
+        ClassroomTeacher ct = verifyTeacherAccess(id, email);
+        ClassroomPost post = classroomPostRepository.findById(postId)
+                .orElseThrow(() -> new IllegalArgumentException("Post not found"));
+                
+        if (!post.getClassroom().getId().equals(ct.getClassroom().getId())) {
+            throw new IllegalArgumentException("Post does not belong to this classroom");
+        }
+        
+        return assignmentSubmissionRepository.findByPost(post).stream()
+                .map(this::mapToAssignmentSubmissionResponse)
+                .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
@@ -223,14 +301,28 @@ public class ClassroomService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public void deleteClassroom(Long id, String email) {
+        ClassroomTeacher ct = verifyTeacherAccess(id, email);
+        if (ct.getPermissionLevel() != PermissionLevel.OWNER) {
+            throw new AccessDeniedException("Only the owner can delete the classroom");
+        }
+        
+        Classroom classroom = ct.getClassroom();
+        classroomPostRepository.deleteByClassroom(classroom);
+        classroomStudentRepository.deleteByClassroom(classroom);
+        classroomTeacherRepository.deleteByClassroom(classroom);
+        classroomRepository.delete(classroom);
+    }
+
     private ClassroomResponse mapToClassroomResponse(Classroom classroom) {
         return ClassroomResponse.builder()
                 .id(classroom.getId())
                 .name(classroom.getName())
                 .subject(classroom.getSubject())
-                .description(classroom.getDescription())
                 .schoolClassId(classroom.getSchoolClass() != null ? classroom.getSchoolClass().getId() : null)
-                .schoolClassName(classroom.getSchoolClass() != null ? classroom.getSchoolClass().getName() : null)
+                .targetClassName(classroom.getSchoolClass() != null ? classroom.getSchoolClass().getName() : null)
+                .description(classroom.getDescription())
                 .createdById(classroom.getCreatedBy().getId())
                 .createdByName(classroom.getCreatedBy().getName())
                 .createdAt(classroom.getCreatedAt())
@@ -241,7 +333,9 @@ public class ClassroomService {
         return PostResponse.builder()
                 .id(post.getId())
                 .type(post.getType())
+                .title(post.getTitle())
                 .content(post.getContent())
+                .dueDate(post.getDueDate())
                 .attachmentUrl(post.getAttachmentUrl())
                 .authorId(post.getAuthor().getId())
                 .authorName(post.getAuthor().getName())
@@ -260,10 +354,21 @@ public class ClassroomService {
                 .lastName(lastName)
                 .email(user.getEmail())
                 .role(user.getRole())
-                .schoolClassId(user.getSchoolClass() != null ? user.getSchoolClass().getId() : null)
-                .schoolClassName(user.getSchoolClass() != null ? user.getSchoolClass().getName() : null)
                 .active(user.isActive())
                 .createdAt(user.getCreatedAt())
+                .build();
+    }
+
+    private AssignmentSubmissionResponse mapToAssignmentSubmissionResponse(AssignmentSubmission submission) {
+        return AssignmentSubmissionResponse.builder()
+                .id(submission.getId())
+                .postId(submission.getPost().getId())
+                .studentId(submission.getStudent().getId())
+                .studentName(submission.getStudent().getName())
+                .fileUrl(submission.getFileUrl())
+                .submittedAt(submission.getSubmittedAt())
+                .score(submission.getScore())
+                .feedback(submission.getFeedback())
                 .build();
     }
 }

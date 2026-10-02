@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import client from '../../api/client';
-import { BookOpen, Users, FolderOpen } from 'lucide-react';
+import { Users, FolderOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const StudentDashboard: React.FC = () => {
@@ -67,10 +67,7 @@ const StudentDashboard: React.FC = () => {
                                 {c.description || 'No description provided.'}
                             </p>
                             <div className="pt-4 border-t border-border-subtle flex items-center justify-between text-xs font-medium text-gray-500">
-                                <div className="flex items-center gap-1.5">
-                                    <BookOpen size={14} className="text-gray-400" />
-                                    {c.schoolClassName}
-                                </div>
+
                                 <div className="flex items-center gap-1.5">
                                     <Users size={14} className="text-gray-400" />
                                     {c.createdByName}

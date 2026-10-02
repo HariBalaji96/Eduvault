@@ -2,7 +2,7 @@ import api from '../api/client';
 
 export const assessmentApi = {
   // Teacher Endpoints
-  createAssessment: async (data: { title: string; classroomId: number; totalMarks: number; deadline: string }) => {
+  createAssessment: async (data: { title: string; classroomId: number; totalMarks: number; deadline: string; durationMinutes?: number | null }) => {
     const response = await api.post('/teacher/assessments', data);
     return response.data;
   },
@@ -63,7 +63,7 @@ export const assessmentApi = {
     return response.data; // returns submissionId
   },
 
-  saveAnswer: async (submissionId: number, questionId: number, data: { mcqSelectedOptionId?: number | null; descriptiveText?: string | null }) => {
+  saveAnswer: async (submissionId: number, questionId: number, data: { mcqSelectedOptionIds?: number[] | null; descriptiveText?: string | null }) => {
     const response = await api.put(`/student/submissions/${submissionId}/answers/${questionId}`, data);
     return response.data;
   },

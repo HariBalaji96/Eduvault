@@ -16,4 +16,7 @@ public class AcademicYear extends Auditable {
 
     @Column(nullable = false, unique = true)
     private String yearLabel;
+
+    @Column(nullable = false)
+    private String batchName;
 }

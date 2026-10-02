@@ -13,5 +13,6 @@ public class AssessmentStudentDTO {
     private LocalDateTime publishedAt;
     private LocalDateTime deadline;
     private Double totalMarks;
+    private Integer durationMinutes;
     private List<QuestionStudentDTO> questions;
 }

@@ -37,6 +37,10 @@ public class TeacherService {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
+        if (request.getRegistrationId() != null && !request.getRegistrationId().isBlank() &&
+            userRepository.findByRegistrationId(request.getRegistrationId()).isPresent()) {
+            throw new IllegalArgumentException("Registration ID already exists");
+        }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new IllegalArgumentException("Password cannot be blank");
         }
@@ -46,6 +50,7 @@ public class TeacherService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.TEACHER);
         user.setActive(true);
+        user.setRegistrationId(request.getRegistrationId());
         return mapToResponse(userRepository.save(user));
     }
 
@@ -59,6 +64,16 @@ public class TeacherService {
         Set<String> existingEmails = userRepository.findByEmailIn(allEmails).stream()
                 .map(User::getEmail)
                 .collect(Collectors.toSet());
+
+        List<String> allRegistrationIds = requests.stream()
+                .map(UserRequest::getRegistrationId)
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toList());
+        Set<String> existingRegistrationIds = allRegistrationIds.isEmpty() ? Collections.emptySet() :
+                userRepository.findByRegistrationIdIn(allRegistrationIds).stream()
+                .map(User::getRegistrationId)
+                .collect(Collectors.toSet());
+        Set<String> seenRegistrationIdsInBatch = new HashSet<>();
 
         List<User> usersToSave = new ArrayList<>();
 
@@ -79,6 +94,18 @@ public class TeacherService {
                 skipped.add(new BulkSkippedRow(req, "Email already exists in database"));
                 continue;
             }
+            if (req.getRegistrationId() != null && !req.getRegistrationId().isBlank()) {
+                if (seenRegistrationIdsInBatch.contains(req.getRegistrationId())) {
+                    skipped.add(new BulkSkippedRow(req, "Duplicate registration ID within batch"));
+                    continue;
+                }
+                seenRegistrationIdsInBatch.add(req.getRegistrationId());
+
+                if (existingRegistrationIds.contains(req.getRegistrationId())) {
+                    skipped.add(new BulkSkippedRow(req, "Registration ID already exists in database"));
+                    continue;
+                }
+            }
             if (req.getPassword() == null || req.getPassword().isBlank()) {
                 skipped.add(new BulkSkippedRow(req, "Password cannot be blank"));
                 continue;
@@ -90,6 +117,7 @@ public class TeacherService {
             user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
             user.setRole(Role.TEACHER);
             user.setActive(true);
+            user.setRegistrationId(req.getRegistrationId());
             usersToSave.add(user);
         }
 
@@ -103,8 +131,14 @@ public class TeacherService {
         if (!user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
+        if (request.getRegistrationId() != null && !request.getRegistrationId().isBlank() && 
+            !request.getRegistrationId().equals(user.getRegistrationId()) &&
+            userRepository.findByRegistrationId(request.getRegistrationId()).isPresent()) {
+            throw new IllegalArgumentException("Registration ID already exists");
+        }
         user.setName(request.getName());
         user.setEmail(request.getEmail());
+        user.setRegistrationId(request.getRegistrationId());
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
@@ -137,6 +171,7 @@ public class TeacherService {
                 .role(user.getRole())
                 .active(user.isActive())
                 .createdAt(user.getCreatedAt())
+                .registrationId(user.getRegistrationId())
                 .build();
     }
 }

@@ -46,6 +46,7 @@ public class AssessmentStudentService {
             dto.setPublishedAt(assessment.getPublishedAt());
             dto.setDeadline(assessment.getDeadline());
             dto.setTotalMarks(assessment.getTotalMarks());
+            dto.setDurationMinutes(assessment.getDurationMinutes());
 
             Optional<Submission> submission = submissions.stream()
                     .filter(s -> s.getAssessment().getId().equals(assessment.getId()))
@@ -76,6 +77,7 @@ public class AssessmentStudentService {
             dto.setPublishedAt(assessment.getPublishedAt());
             dto.setDeadline(assessment.getDeadline());
             dto.setTotalMarks(assessment.getTotalMarks());
+            dto.setDurationMinutes(assessment.getDurationMinutes());
 
             Optional<Submission> submission = submissions.stream()
                     .filter(s -> s.getAssessment().getId().equals(assessment.getId()))
@@ -106,6 +108,7 @@ public class AssessmentStudentService {
         dto.setPublishedAt(assessment.getPublishedAt());
         dto.setDeadline(assessment.getDeadline());
         dto.setTotalMarks(assessment.getTotalMarks());
+        dto.setDurationMinutes(assessment.getDurationMinutes());
 
         List<Question> questions = questionRepository.findByAssessmentIdOrderByOrderIndexAsc(assessmentId);
         dto.setQuestions(questions.stream().map(this::mapToQuestionStudentDTO).collect(Collectors.toList()));
@@ -162,12 +165,11 @@ public class AssessmentStudentService {
         }
 
         if (question.getType() == QuestionType.MCQ) {
-            if (dto.getMcqSelectedOptionId() != null) {
-                McqOption option = mcqOptionRepository.findById(dto.getMcqSelectedOptionId())
-                        .orElseThrow(() -> new RuntimeException("Option not found"));
-                answer.setMcqSelectedOption(option);
+            if (dto.getMcqSelectedOptionIds() != null && !dto.getMcqSelectedOptionIds().isEmpty()) {
+                List<McqOption> options = mcqOptionRepository.findAllById(dto.getMcqSelectedOptionIds());
+                answer.setMcqSelectedOptions(options);
             } else {
-                answer.setMcqSelectedOption(null);
+                answer.setMcqSelectedOptions(null);
             }
         } else if (question.getType() == QuestionType.DESCRIPTIVE) {
             answer.setDescriptiveText(dto.getDescriptiveText());
@@ -193,8 +195,14 @@ public class AssessmentStudentService {
         for (AnswerResponse answer : answers) {
             Question question = answer.getQuestion();
             if (question.getType() == QuestionType.MCQ) {
-                McqOption selected = answer.getMcqSelectedOption();
-                if (selected != null && selected.isCorrect()) {
+                List<McqOption> selectedOptions = answer.getMcqSelectedOptions();
+                List<McqOption> allOptions = mcqOptionRepository.findByQuestionId(question.getId());
+                
+                long correctCount = allOptions.stream().filter(McqOption::isCorrect).count();
+                long selectedCorrectCount = selectedOptions != null ? selectedOptions.stream().filter(McqOption::isCorrect).count() : 0;
+                long selectedWrongCount = selectedOptions != null ? selectedOptions.stream().filter(o -> !o.isCorrect()).count() : 0;
+                
+                if (correctCount > 0 && selectedCorrectCount == correctCount && selectedWrongCount == 0) {
                     answer.setFinalScore(question.getMarks());
                     mcqTotalScore += question.getMarks();
                 } else {
@@ -274,6 +282,7 @@ public class AssessmentStudentService {
                 optDto.setOptionText(o.getOptionText());
                 return optDto;
             }).collect(Collectors.toList()));
+            dto.setIsMultipleAnswer(options.stream().filter(McqOption::isCorrect).count() > 1);
         }
         return dto;
     }

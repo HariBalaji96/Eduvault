@@ -18,6 +18,7 @@ public class AcademicYearService {
     public AcademicYear create(AcademicYearRequest request) {
         AcademicYear year = new AcademicYear();
         year.setYearLabel(request.getYearLabel());
+        year.setBatchName(request.getBatchName());
         return repository.save(year);
     }
 
@@ -28,6 +29,7 @@ public class AcademicYearService {
     public AcademicYear update(Long id, AcademicYearRequest request) {
         AcademicYear year = repository.findById(id).orElseThrow();
         year.setYearLabel(request.getYearLabel());
+        year.setBatchName(request.getBatchName());
         return repository.save(year);
     }
 

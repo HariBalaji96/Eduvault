@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import client from '../../api/client';
 import Modal from '../../components/Modal';
-import { Plus, BookOpen, Users, FolderOpen } from 'lucide-react';
+import { Plus, Users, FolderOpen } from 'lucide-react';
 
 const TeacherDashboard: React.FC = () => {
     const [classrooms, setClassrooms] = useState<any[]>([]);
@@ -10,9 +10,16 @@ const TeacherDashboard: React.FC = () => {
     
     const [name, setName] = useState('');
     const [subject, setSubject] = useState('');
-    const [description, setDescription] = useState('');
     const [schoolClassId, setSchoolClassId] = useState('');
-    const [availableClasses, setAvailableClasses] = useState<any[]>([]);
+    const [description, setDescription] = useState('');
+    const [studentIds, setStudentIds] = useState<number[]>([]);
+    const [availableStudents, setAvailableStudents] = useState<any[]>([]);
+    const [schoolClasses, setSchoolClasses] = useState<any[]>([]);
+    
+    // New states for the multi-step form and filtering
+    const [step, setStep] = useState(1);
+    const [searchQuery, setSearchQuery] = useState('');
+
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchClassrooms = async () => {
@@ -26,26 +33,38 @@ const TeacherDashboard: React.FC = () => {
         }
     };
 
+    const fetchStudents = async () => {
+        try {
+            const res = await client.get('/teacher/classrooms/all-students');
+            setAvailableStudents(res.data);
+        } catch (err) {
+            console.error("Failed to fetch students", err);
+        }
+    };
+
     const fetchSchoolClasses = async () => {
         try {
-            const res = await client.get('/admin/classes');
-            setAvailableClasses(res.data);
+            const res = await client.get('/teacher/classrooms/school-classes');
+            setSchoolClasses(res.data);
         } catch (err) {
-            console.error(err);
+            console.error("Failed to fetch school classes", err);
         }
     };
 
     useEffect(() => {
         fetchClassrooms();
+        fetchStudents();
         fetchSchoolClasses();
     }, []);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await client.post('/teacher/classrooms', { name, subject, description, schoolClassId: Number(schoolClassId) });
+            await client.post('/teacher/classrooms', { name, subject, schoolClassId: Number(schoolClassId), description, studentIds });
             setModalOpen(false);
-            setName(''); setSubject(''); setDescription(''); setSchoolClassId('');
+            setName(''); setSubject(''); setSchoolClassId(''); setDescription(''); setStudentIds([]);
+            setStep(1);
+            setSearchQuery('');
             fetchClassrooms();
         } catch (err) {
             console.error(err);
@@ -102,10 +121,7 @@ const TeacherDashboard: React.FC = () => {
                                     {c.description || 'No description provided.'}
                                 </p>
                                 <div className="pt-4 border-t border-border-subtle flex items-center justify-between text-xs font-medium text-gray-500">
-                                    <div className="flex items-center gap-1.5">
-                                        <BookOpen size={14} className="text-gray-400" />
-                                        {c.schoolClassName}
-                                    </div>
+
                                     <div className="flex items-center gap-1.5 bg-gray-50 dark:bg-zinc-800 px-2 py-1 rounded">
                                         <Users size={14} className="text-gray-400" /> Owner
                                     </div>
@@ -116,30 +132,116 @@ const TeacherDashboard: React.FC = () => {
                 </div>
             )}
 
-            <Modal isOpen={isModalOpen} onClose={() => setModalOpen(false)} title="Create Classroom">
-                <form onSubmit={handleCreate} className="space-y-5 py-2">
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Classroom Name</label>
-                        <input type="text" required value={name} onChange={e => setName(e.target.value)} className="modern-input" placeholder="e.g. Advanced Physics 101" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Subject</label>
-                        <input type="text" required value={subject} onChange={e => setSubject(e.target.value)} className="modern-input" placeholder="e.g. Physics" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Target School Class</label>
-                        <select required value={schoolClassId} onChange={e => setSchoolClassId(e.target.value)} className="modern-input">
-                            <option value="">Select a class...</option>
-                            {availableClasses.map(ac => <option key={ac.id} value={ac.id}>{ac.name} ({ac.academicYear?.yearLabel || 'No Year'})</option>)}
-                        </select>
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Description (Optional)</label>
-                        <textarea value={description} onChange={e => setDescription(e.target.value)} className="modern-input min-h-[100px] resize-none" placeholder="Brief description of this classroom..." />
-                    </div>
-                    <div className="pt-2">
-                        <button type="submit" className="modern-button w-full shadow-primary/20">Create Classroom</button>
-                    </div>
+            <Modal isOpen={isModalOpen} onClose={() => {
+                setModalOpen(false);
+                setStep(1);
+            }} title={step === 1 ? "Create Classroom (1/2)" : "Select Students (2/2)"}>
+                <form onSubmit={step === 1 ? (e) => { e.preventDefault(); setStep(2); } : handleCreate} className="space-y-5 py-2">
+                    {step === 1 && (
+                        <>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Classroom Name</label>
+                                <input type="text" required value={name} onChange={e => setName(e.target.value)} className="modern-input" placeholder="e.g. Advanced Physics 101" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Subject</label>
+                                <input type="text" required value={subject} onChange={e => setSubject(e.target.value)} className="modern-input" placeholder="e.g. Physics" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Target Class</label>
+                                <select required value={schoolClassId} onChange={e => setSchoolClassId(e.target.value)} className="modern-input">
+                                    <option value="">Select a class...</option>
+                                    {schoolClasses.map(sc => (
+                                        <option key={sc.id} value={sc.id}>{sc.name} ({sc.yearLabel} {sc.batchName})</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Description (Optional)</label>
+                                <textarea value={description} onChange={e => setDescription(e.target.value)} className="modern-input min-h-[100px] resize-none" placeholder="Brief description of this classroom..." />
+                            </div>
+                            
+                            <div className="pt-2 flex justify-end">
+                                <button type="submit" className="modern-button shadow-primary/20">Next: Add Students</button>
+                            </div>
+                        </>
+                    )}
+
+                    {step === 2 && (
+                        <>
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Search & Select Students ({studentIds.length} selected)</label>
+                                    <button 
+                                        type="button" 
+                                        className="text-xs text-primary hover:underline"
+                                        onClick={() => setStudentIds(availableStudents.map(s => s.id))}
+                                    >
+                                        Select All
+                                    </button>
+                                </div>
+                                <input 
+                                    type="text" 
+                                    value={searchQuery} 
+                                    onChange={e => setSearchQuery(e.target.value)} 
+                                    className="modern-input" 
+                                    placeholder="Search by name, email, or roll no..." 
+                                />
+                                <div className="modern-input max-h-[300px] overflow-y-auto space-y-2 p-3 bg-gray-50 dark:bg-zinc-800/50">
+                                    {availableStudents
+                                        .filter(s => {
+                                            const searchLower = searchQuery.toLowerCase();
+                                            return (s.firstName?.toLowerCase().includes(searchLower) || 
+                                                    s.lastName?.toLowerCase().includes(searchLower) || 
+                                                    s.email?.toLowerCase().includes(searchLower) || 
+                                                    s.registrationId?.toLowerCase().includes(searchLower));
+                                        })
+                                        .map(student => (
+                                        <label key={student.id} className="flex items-center space-x-3 cursor-pointer p-2 hover:bg-white dark:hover:bg-zinc-700 rounded transition-colors">
+                                            <input 
+                                                type="checkbox" 
+                                                className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                checked={studentIds.includes(student.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setStudentIds([...studentIds, student.id]);
+                                                    } else {
+                                                        setStudentIds(studentIds.filter(id => id !== student.id));
+                                                    }
+                                                }}
+                                            />
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-medium text-gray-900 dark:text-white">
+                                                    {student.firstName} {student.lastName}
+                                                </span>
+                                                <span className="text-xs text-gray-500">
+                                                    {student.registrationId || 'No Roll No'} • {student.email}
+                                                </span>
+                                            </div>
+                                        </label>
+                                    ))}
+                                    {availableStudents.length === 0 && (
+                                        <div className="p-4 text-center text-sm text-gray-500">No students available in the system.</div>
+                                    )}
+                                    {availableStudents.length > 0 && availableStudents.filter(s => {
+                                            const searchLower = searchQuery.toLowerCase();
+                                            return (s.firstName?.toLowerCase().includes(searchLower) || 
+                                                    s.lastName?.toLowerCase().includes(searchLower) || 
+                                                    s.email?.toLowerCase().includes(searchLower) || 
+                                                    s.registrationId?.toLowerCase().includes(searchLower));
+                                        }).length === 0 && (
+                                        <div className="p-4 text-center text-sm text-gray-500">No students found matching "{searchQuery}".</div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="pt-4 flex gap-3">
+                                <button type="button" onClick={() => setStep(1)} className="modern-button-outline flex-1">Back</button>
+                                <button type="submit" className="modern-button flex-1 shadow-primary/20">Create Classroom</button>
+                            </div>
+                        </>
+                    )}
                 </form>
             </Modal>
         </div>

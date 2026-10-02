@@ -3,9 +3,7 @@ package com.psgtech.eduvault.service;
 import com.psgtech.eduvault.dto.admin.*;
 import com.psgtech.eduvault.entity.Role;
 import com.psgtech.eduvault.entity.User;
-import com.psgtech.eduvault.entity.SchoolClass;
 import com.psgtech.eduvault.repository.UserRepository;
-import com.psgtech.eduvault.repository.SchoolClassRepository;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,15 +16,17 @@ import java.util.stream.Collectors;
 @Service
 public class StudentService {
     private final UserRepository userRepository;
-    private final SchoolClassRepository schoolClassRepository;
+
     private final PasswordEncoder passwordEncoder;
     private final Validator validator;
 
-    public StudentService(UserRepository userRepository, SchoolClassRepository schoolClassRepository, PasswordEncoder passwordEncoder, Validator validator) {
+    private final com.psgtech.eduvault.repository.SchoolClassRepository schoolClassRepository;
+
+    public StudentService(UserRepository userRepository, PasswordEncoder passwordEncoder, Validator validator, com.psgtech.eduvault.repository.SchoolClassRepository schoolClassRepository) {
         this.userRepository = userRepository;
-        this.schoolClassRepository = schoolClassRepository;
         this.passwordEncoder = passwordEncoder;
         this.validator = validator;
+        this.schoolClassRepository = schoolClassRepository;
     }
 
     @Transactional
@@ -41,6 +41,10 @@ public class StudentService {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
+        if (request.getRegistrationId() != null && !request.getRegistrationId().isBlank() &&
+            userRepository.findByRegistrationId(request.getRegistrationId()).isPresent()) {
+            throw new IllegalArgumentException("Registration ID already exists");
+        }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new IllegalArgumentException("Password cannot be blank");
         }
@@ -50,11 +54,14 @@ public class StudentService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.STUDENT);
         user.setActive(true);
+        user.setRegistrationId(request.getRegistrationId());
+
         if (request.getSchoolClassId() != null) {
-            SchoolClass sc = schoolClassRepository.findById(request.getSchoolClassId())
+            com.psgtech.eduvault.entity.SchoolClass schoolClass = schoolClassRepository.findById(request.getSchoolClassId())
                     .orElseThrow(() -> new IllegalArgumentException("School class not found"));
-            user.setSchoolClass(sc);
+            user.setSchoolClass(schoolClass);
         }
+
         return mapToResponse(userRepository.save(user));
     }
 
@@ -68,6 +75,16 @@ public class StudentService {
         Set<String> existingEmails = userRepository.findByEmailIn(allEmails).stream()
                 .map(User::getEmail)
                 .collect(Collectors.toSet());
+
+        List<String> allRegistrationIds = requests.stream()
+                .map(UserRequest::getRegistrationId)
+                .filter(id -> id != null && !id.isBlank())
+                .collect(Collectors.toList());
+        Set<String> existingRegistrationIds = allRegistrationIds.isEmpty() ? Collections.emptySet() :
+                userRepository.findByRegistrationIdIn(allRegistrationIds).stream()
+                .map(User::getRegistrationId)
+                .collect(Collectors.toSet());
+        Set<String> seenRegistrationIdsInBatch = new HashSet<>();
 
         List<User> usersToSave = new ArrayList<>();
 
@@ -88,6 +105,18 @@ public class StudentService {
                 skipped.add(new BulkSkippedRow(req, "Email already exists in database"));
                 continue;
             }
+            if (req.getRegistrationId() != null && !req.getRegistrationId().isBlank()) {
+                if (seenRegistrationIdsInBatch.contains(req.getRegistrationId())) {
+                    skipped.add(new BulkSkippedRow(req, "Duplicate registration ID within batch"));
+                    continue;
+                }
+                seenRegistrationIdsInBatch.add(req.getRegistrationId());
+
+                if (existingRegistrationIds.contains(req.getRegistrationId())) {
+                    skipped.add(new BulkSkippedRow(req, "Registration ID already exists in database"));
+                    continue;
+                }
+            }
             if (req.getPassword() == null || req.getPassword().isBlank()) {
                 skipped.add(new BulkSkippedRow(req, "Password cannot be blank"));
                 continue;
@@ -99,9 +128,14 @@ public class StudentService {
             user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
             user.setRole(Role.STUDENT);
             user.setActive(true);
+            user.setRegistrationId(req.getRegistrationId());
+
             if (req.getSchoolClassId() != null) {
-                schoolClassRepository.findById(req.getSchoolClassId()).ifPresent(user::setSchoolClass);
+                com.psgtech.eduvault.entity.SchoolClass schoolClass = schoolClassRepository.findById(req.getSchoolClassId())
+                        .orElseThrow(() -> new IllegalArgumentException("School class not found for ID: " + req.getSchoolClassId()));
+                user.setSchoolClass(schoolClass);
             }
+
             usersToSave.add(user);
         }
 
@@ -115,18 +149,25 @@ public class StudentService {
         if (!user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
+        if (request.getRegistrationId() != null && !request.getRegistrationId().isBlank() && 
+            !request.getRegistrationId().equals(user.getRegistrationId()) &&
+            userRepository.findByRegistrationId(request.getRegistrationId()).isPresent()) {
+            throw new IllegalArgumentException("Registration ID already exists");
+        }
         user.setName(request.getName());
         user.setEmail(request.getEmail());
+        user.setRegistrationId(request.getRegistrationId());
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
         if (request.getSchoolClassId() != null) {
-            SchoolClass sc = schoolClassRepository.findById(request.getSchoolClassId())
+            com.psgtech.eduvault.entity.SchoolClass schoolClass = schoolClassRepository.findById(request.getSchoolClassId())
                     .orElseThrow(() -> new IllegalArgumentException("School class not found"));
-            user.setSchoolClass(sc);
+            user.setSchoolClass(schoolClass);
         } else {
             user.setSchoolClass(null);
         }
+
         return mapToResponse(userRepository.save(user));
     }
 
@@ -156,6 +197,8 @@ public class StudentService {
                 .role(user.getRole())
                 .active(user.isActive())
                 .createdAt(user.getCreatedAt())
+
+                .registrationId(user.getRegistrationId())
                 .schoolClassId(user.getSchoolClass() != null ? user.getSchoolClass().getId() : null)
                 .schoolClassName(user.getSchoolClass() != null ? user.getSchoolClass().getName() : null)
                 .build();

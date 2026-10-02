@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface ClassroomPostRepository extends JpaRepository<ClassroomPost, Long> {
     List<ClassroomPost> findByClassroomOrderByCreatedAtDesc(Classroom classroom);
+    void deleteByClassroom(Classroom classroom);
 }
