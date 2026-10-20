@@ -23,4 +23,16 @@ public class McqOption extends Auditable {
 
     @Column(nullable = false)
     private boolean isCorrect;
+
+    public boolean isCorrect() {
+        return this.isCorrect;
+    }
+
+    public void setCorrect(boolean isCorrect) {
+        this.isCorrect = isCorrect;
+    }
+
+    public void setIsCorrect(boolean isCorrect) {
+        this.isCorrect = isCorrect;
+    }
 }

@@ -21,7 +21,7 @@ interface PostListProps {
     onDeletePost?: (postId: number) => void;
 }
 
-const PostList: React.FC<PostListProps> = ({ posts, isTeacher, classroomId, onEditPost, onViewSubmissions, onUploadAssignment, onDeletePost }) => {
+const PostList: React.FC<PostListProps> = ({ posts, isTeacher, classroomId: _classroomId, onEditPost, onViewSubmissions, onUploadAssignment, onDeletePost }) => {
     const getTypeColor = (type: string) => {
         switch(type) {
             case 'ANNOUNCEMENT': return 'bg-yellow-100 text-yellow-800';

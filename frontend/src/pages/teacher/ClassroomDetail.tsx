@@ -121,7 +121,7 @@ const ClassroomDetail: React.FC = () => {
                 type: editingPost.type,
                 title: editingPost.title,
                 content: editingPost.content,
-                dueDate: editingPost.dueDate ? new Date(editingPost.dueDate).toISOString() : null,
+                dueDate: editingPost.dueDate ? (editingPost.dueDate.length === 16 ? editingPost.dueDate + ':00' : editingPost.dueDate) : null,
                 attachmentUrl: editingPost.attachmentUrl
             });
             setEditPostModalOpen(false);
@@ -137,7 +137,7 @@ const ClassroomDetail: React.FC = () => {
     const openEditPostModal = (post: any) => {
         setEditingPost({
             ...post,
-            dueDate: post.dueDate ? new Date(post.dueDate).toISOString().slice(0, 16) : ''
+            dueDate: post.dueDate ? post.dueDate.slice(0, 16) : ''
         });
         setEditPostModalOpen(true);
     };
@@ -152,8 +152,8 @@ const ClassroomDetail: React.FC = () => {
         }
     };
 
-    const handleDeleteDraft = async (assessmentId: number) => {
-        if (!window.confirm("Are you sure you want to delete this draft assessment? This action cannot be undone.")) return;
+    const handleDeleteAssessment = async (assessmentId: number) => {
+        if (!window.confirm("Are you sure you want to delete this assessment? This will delete all submissions and cannot be undone.")) return;
         try {
             await client.delete(`/teacher/assessments/${assessmentId}`);
             fetchAssessments();
@@ -337,13 +337,11 @@ const ClassroomDetail: React.FC = () => {
                                                     </Link>
                                                 )}
                                                 <Link to={`/teacher/assessments/${a.id}/edit`} className="px-3 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
-                                                    Edit
+                                                    {a.publishedAt ? "View Details" : "Edit"}
                                                 </Link>
-                                                {!a.publishedAt && (
-                                                    <button onClick={() => handleDeleteDraft(a.id)} className="px-3 py-1.5 bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded text-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors">
-                                                        Delete
-                                                    </button>
-                                                )}
+                                                <button onClick={() => handleDeleteAssessment(a.id)} className="px-3 py-1.5 bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400 rounded text-sm hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors">
+                                                    Delete
+                                                </button>
                                             </div>
                                         </div>
                                     ))

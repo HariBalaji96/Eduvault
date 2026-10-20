@@ -58,4 +58,9 @@ public class AssessmentStudentController {
     public ResponseEntity<List<StudentAssessmentListDTO>> getClassroomAssessments(@PathVariable Long classroomId, @AuthenticationPrincipal(expression = "user") User student) {
         return ResponseEntity.ok(assessmentStudentService.getClassroomAssessments(classroomId, student));
     }
+
+    @GetMapping("/assessments/{id}/result")
+    public ResponseEntity<com.psgtech.eduvault.dto.assessment.SubmissionDetailDTO> getAssessmentResult(@PathVariable Long id, @AuthenticationPrincipal(expression = "user") User student) {
+        return ResponseEntity.ok(assessmentStudentService.getAssessmentResult(id, student));
+    }
 }

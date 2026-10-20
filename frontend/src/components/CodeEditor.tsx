@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
-import { Play, Send, CheckCircle2, XCircle, AlertCircle, RefreshCw, TerminalSquare } from 'lucide-react';
+import { Play, Send, CheckCircle2, XCircle, AlertCircle, RefreshCw, TerminalSquare, Lightbulb } from 'lucide-react';
+import { assessmentApi } from '../services/assessmentApi';
 
 export interface CodeExecutionResult {
     compiled: boolean;
@@ -36,6 +37,9 @@ export default function CodeEditor({ mode, initialCode = '', onRun, onSubmit }: 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [result, setResult] = useState<CodeExecutionResult | null>(null);
     const [customInput, setCustomInput] = useState('');
+    
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [analysisResult, setAnalysisResult] = useState<{timeComplexity: string, spaceComplexity: string, tips: string} | null>(null);
 
     useEffect(() => {
         // Update code to new boilerplate if it's empty, or if it matches any boilerplate, or matches initialCode
@@ -73,6 +77,20 @@ export default function CodeEditor({ mode, initialCode = '', onRun, onSubmit }: 
         }
     };
 
+    const handleAnalyze = async () => {
+        setIsAnalyzing(true);
+        setAnalysisResult(null);
+        try {
+            const res = await assessmentApi.analyzeCode({ code, language });
+            setAnalysisResult(res);
+        } catch (error: any) {
+            console.error("AI Analysis failed", error);
+            alert("Failed to analyze code: " + (error.response?.data?.message || error.message));
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
     const passedCount = result?.results?.filter(r => r.passed).length || 0;
     const totalCount = result?.results?.length || 0;
 
@@ -97,8 +115,16 @@ export default function CodeEditor({ mode, initialCode = '', onRun, onSubmit }: 
                 </div>
                 <div className="flex items-center gap-3">
                     <button
+                        onClick={handleAnalyze}
+                        disabled={isRunning || isSubmitting || isAnalyzing}
+                        className="inline-flex items-center justify-center rounded-lg bg-indigo-600/20 px-4 py-1.5 text-sm font-semibold text-indigo-400 border border-indigo-500/30 transition-all hover:bg-indigo-600/30 active:scale-[0.98] disabled:opacity-50"
+                    >
+                        {isAnalyzing ? <RefreshCw size={16} className="animate-spin mr-2" /> : <Lightbulb size={16} className="mr-2" />}
+                        Analyze
+                    </button>
+                    <button
                         onClick={handleRun}
-                        disabled={isRunning || isSubmitting}
+                        disabled={isRunning || isSubmitting || isAnalyzing}
                         className="inline-flex items-center justify-center rounded-lg bg-zinc-800 px-4 py-1.5 text-sm font-semibold text-gray-200 transition-all hover:bg-zinc-700 active:scale-[0.98] disabled:opacity-50"
                     >
                         {isRunning ? <RefreshCw size={16} className="animate-spin mr-2" /> : <Play size={16} className="text-emerald-400 mr-2" />}
@@ -218,6 +244,30 @@ export default function CodeEditor({ mode, initialCode = '', onRun, onSubmit }: 
                                 ))}
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+            
+            {/* AI Analysis Result Panel */}
+            {analysisResult && (
+                <div className="bg-zinc-900 border-t border-zinc-800 p-4">
+                    <div className="flex items-center text-indigo-400 font-medium mb-3">
+                        <Lightbulb size={18} className="mr-2" />
+                        AI Analysis
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div className="bg-black/30 p-3 rounded-lg border border-zinc-800/50">
+                            <div className="text-xs text-zinc-500 mb-1 uppercase tracking-wider font-semibold">Time Complexity</div>
+                            <div className="text-zinc-200 font-mono text-sm">{analysisResult.timeComplexity}</div>
+                        </div>
+                        <div className="bg-black/30 p-3 rounded-lg border border-zinc-800/50">
+                            <div className="text-xs text-zinc-500 mb-1 uppercase tracking-wider font-semibold">Space Complexity</div>
+                            <div className="text-zinc-200 font-mono text-sm">{analysisResult.spaceComplexity}</div>
+                        </div>
+                    </div>
+                    <div className="bg-indigo-500/10 border border-indigo-500/20 p-4 rounded-lg">
+                        <div className="text-xs text-indigo-400 mb-2 uppercase tracking-wider font-semibold">Tips for Optimal Solution</div>
+                        <div className="text-zinc-300 text-sm whitespace-pre-wrap leading-relaxed">{analysisResult.tips}</div>
                     </div>
                 </div>
             )}

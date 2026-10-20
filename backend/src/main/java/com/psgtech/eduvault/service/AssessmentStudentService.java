@@ -24,6 +24,7 @@ public class AssessmentStudentService {
     private final AnswerResponseRepository answerResponseRepository;
     private final CodeExecutionService codeExecutionService;
     private final CodingTestCaseRepository codingTestCaseRepository;
+    private final com.psgtech.eduvault.repository.DescriptiveModelAnswerRepository descriptiveModelAnswerRepository;
 
     @Transactional(readOnly = true)
     public List<StudentAssessmentListDTO> getPublishedAssessments(User student) {
@@ -47,6 +48,7 @@ public class AssessmentStudentService {
             dto.setDeadline(assessment.getDeadline());
             dto.setTotalMarks(assessment.getTotalMarks());
             dto.setDurationMinutes(assessment.getDurationMinutes());
+            dto.setResultsPublishedAt(assessment.getResultsPublishedAt());
 
             Optional<Submission> submission = submissions.stream()
                     .filter(s -> s.getAssessment().getId().equals(assessment.getId()))
@@ -78,6 +80,7 @@ public class AssessmentStudentService {
             dto.setDeadline(assessment.getDeadline());
             dto.setTotalMarks(assessment.getTotalMarks());
             dto.setDurationMinutes(assessment.getDurationMinutes());
+            dto.setResultsPublishedAt(assessment.getResultsPublishedAt());
 
             Optional<Submission> submission = submissions.stream()
                     .filter(s -> s.getAssessment().getId().equals(assessment.getId()))
@@ -109,6 +112,7 @@ public class AssessmentStudentService {
         dto.setDeadline(assessment.getDeadline());
         dto.setTotalMarks(assessment.getTotalMarks());
         dto.setDurationMinutes(assessment.getDurationMinutes());
+        dto.setResultsPublishedAt(assessment.getResultsPublishedAt());
 
         List<Question> questions = questionRepository.findByAssessmentIdOrderByOrderIndexAsc(assessmentId);
         dto.setQuestions(questions.stream().map(this::mapToQuestionStudentDTO).collect(Collectors.toList()));
@@ -190,7 +194,7 @@ public class AssessmentStudentService {
         }
 
         List<AnswerResponse> answers = answerResponseRepository.findBySubmissionId(submissionId);
-        double mcqTotalScore = 0.0;
+        double totalScore = 0.0;
 
         for (AnswerResponse answer : answers) {
             Question question = answer.getQuestion();
@@ -204,18 +208,21 @@ public class AssessmentStudentService {
                 
                 if (correctCount > 0 && selectedCorrectCount == correctCount && selectedWrongCount == 0) {
                     answer.setFinalScore(question.getMarks());
-                    mcqTotalScore += question.getMarks();
+                    totalScore += question.getMarks();
                 } else {
                     answer.setFinalScore(0.0);
                 }
                 answerResponseRepository.save(answer);
+            } else {
+                if (answer.getFinalScore() != null) {
+                    totalScore += answer.getFinalScore();
+                }
             }
-            // Descriptive score is left null
         }
 
         submission.setStatus(SubmissionStatus.SUBMITTED);
         submission.setSubmittedAt(LocalDateTime.now());
-        submission.setTotalScore(mcqTotalScore); // This will only be MCQ score initially
+        submission.setTotalScore(totalScore);
         submissionRepository.save(submission);
     }
 
@@ -284,6 +291,74 @@ public class AssessmentStudentService {
             }).collect(Collectors.toList()));
             dto.setIsMultipleAnswer(options.stream().filter(McqOption::isCorrect).count() > 1);
         }
+        return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public com.psgtech.eduvault.dto.assessment.SubmissionDetailDTO getAssessmentResult(Long assessmentId, User student) {
+        Submission submission = submissionRepository.findByAssessmentIdAndStudentId(assessmentId, student.getId())
+            .orElseThrow(() -> new RuntimeException("Submission not found"));
+            
+        if (submission.getAssessment().getResultsPublishedAt() == null) {
+            throw new RuntimeException("Results for this assessment have not been published yet.");
+        }
+
+        com.psgtech.eduvault.dto.assessment.SubmissionDetailDTO dto = new com.psgtech.eduvault.dto.assessment.SubmissionDetailDTO();
+        dto.setId(submission.getId());
+        dto.setAssessmentId(submission.getAssessment().getId());
+        dto.setAssessmentTitle(submission.getAssessment().getTitle());
+        dto.setStudentId(submission.getStudent().getId());
+        dto.setStudentName(submission.getStudent().getName());
+        dto.setStudentEmail(submission.getStudent().getEmail());
+        dto.setSubmittedAt(submission.getSubmittedAt());
+        dto.setStatus(submission.getStatus());
+        dto.setTotalScore(submission.getTotalScore());
+
+        List<AnswerResponse> answers = answerResponseRepository.findBySubmissionId(submission.getId());
+        dto.setAnswers(answers.stream().map(ans -> {
+            com.psgtech.eduvault.dto.assessment.AnswerResponseDTO ansDto = new com.psgtech.eduvault.dto.assessment.AnswerResponseDTO();
+            ansDto.setId(ans.getId());
+            ansDto.setQuestionId(ans.getQuestion().getId());
+            ansDto.setQuestionType(ans.getQuestion().getType());
+            ansDto.setQuestionText(ans.getQuestion().getText());
+            ansDto.setQuestionMarks(ans.getQuestion().getMarks());
+
+            if (ans.getQuestion().getType() == QuestionType.MCQ) {
+                if (ans.getMcqSelectedOptions() != null) {
+                    List<com.psgtech.eduvault.dto.assessment.McqOptionDTO> selectedOptDtos = ans.getMcqSelectedOptions().stream().map(o -> {
+                        com.psgtech.eduvault.dto.assessment.McqOptionDTO opt = new com.psgtech.eduvault.dto.assessment.McqOptionDTO();
+                        opt.setId(o.getId());
+                        opt.setOptionText(o.getOptionText());
+                        opt.setCorrect(o.isCorrect());
+                        return opt;
+                    }).collect(Collectors.toList());
+                    ansDto.setMcqSelectedOptions(selectedOptDtos);
+                    
+                    List<McqOption> allOptions = mcqOptionRepository.findByQuestionId(ans.getQuestion().getId());
+                    long correctCount = allOptions.stream().filter(McqOption::isCorrect).count();
+                    long selectedCorrectCount = ans.getMcqSelectedOptions().stream().filter(McqOption::isCorrect).count();
+                    long selectedWrongCount = ans.getMcqSelectedOptions().stream().filter(o -> !o.isCorrect()).count();
+                    
+                    ansDto.setIsMcqCorrect(correctCount > 0 && selectedCorrectCount == correctCount && selectedWrongCount == 0);
+                }
+            } else if (ans.getQuestion().getType() == QuestionType.DESCRIPTIVE) {
+                ansDto.setDescriptiveText(ans.getDescriptiveText());
+                // For result, student can see model answer
+                descriptiveModelAnswerRepository.findByQuestionId(ans.getQuestion().getId())
+                    .ifPresent(m -> ansDto.setModelAnswerText(m.getModelAnswerText()));
+            } else if (ans.getQuestion().getType() == QuestionType.CODING) {
+                ansDto.setCodeSubmitted(ans.getCodeSubmitted());
+            }
+
+            ansDto.setAiScore(ans.getAiScore());
+            ansDto.setAiEvaluationNotes(ans.getAiEvaluationNotes());
+            ansDto.setTeacherOverrideScore(ans.getTeacherOverrideScore());
+            ansDto.setTeacherFeedback(ans.getTeacherFeedback());
+            ansDto.setFinalScore(ans.getFinalScore());
+
+            return ansDto;
+        }).collect(Collectors.toList()));
+
         return dto;
     }
 }

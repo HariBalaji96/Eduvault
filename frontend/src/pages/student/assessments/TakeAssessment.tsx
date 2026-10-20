@@ -73,25 +73,23 @@ export default function TakeAssessment() {
     };
 
     const handleMcqChange = (questionId: number, optionId: number, isMultiple: boolean) => {
-        setAnswers(prev => {
-            const prevAnswers = prev[questionId]?.mcqSelectedOptionIds || [];
-            let newAnswers = [];
-            if (isMultiple) {
-                if (prevAnswers.includes(optionId)) {
-                    newAnswers = prevAnswers.filter((id: number) => id !== optionId);
-                } else {
-                    newAnswers = [...prevAnswers, optionId];
-                }
+        const prevAnswers = answers[questionId]?.mcqSelectedOptionIds || [];
+        let newAnswers: number[] = [];
+        if (isMultiple) {
+            if (prevAnswers.includes(optionId)) {
+                newAnswers = prevAnswers.filter((id: number) => id !== optionId);
             } else {
-                newAnswers = [optionId];
+                newAnswers = [...prevAnswers, optionId];
             }
-            
-            if (submissionId) {
-                assessmentApi.saveAnswer(submissionId, questionId, { mcqSelectedOptionIds: newAnswers }).catch(console.error);
-            }
-            
-            return { ...prev, [questionId]: { ...prev[questionId], mcqSelectedOptionIds: newAnswers } };
-        });
+        } else {
+            newAnswers = [optionId];
+        }
+        
+        setAnswers(prev => ({ ...prev, [questionId]: { ...prev[questionId], mcqSelectedOptionIds: newAnswers } }));
+
+        if (submissionId) {
+            assessmentApi.saveAnswer(submissionId, questionId, { mcqSelectedOptionIds: newAnswers }).catch(console.error);
+        }
     };
 
     const handleDescriptiveBlur = (questionId: number, text: string) => {
@@ -100,9 +98,19 @@ export default function TakeAssessment() {
         }
     };
 
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+
     const handleSubmit = async (isAutoSubmit = false) => {
         if (!submissionId) return;
-        if (!isAutoSubmit && !window.confirm("Are you sure you want to submit? This action cannot be undone.")) return;
+        if (!isAutoSubmit) {
+            setShowConfirmModal(true);
+            return;
+        }
+        await performSubmit();
+    };
+
+    const performSubmit = async () => {
+        if (!submissionId) return;
         try {
             await assessmentApi.submitAssessment(submissionId);
             navigate(`/student/assessments/${id}/result`);
@@ -219,6 +227,34 @@ export default function TakeAssessment() {
                     )}
                 </div>
             </div>
+
+            {showConfirmModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-2xl max-w-md w-full border border-gray-200 dark:border-gray-800">
+                        <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Submit Assessment?</h3>
+                        <p className="text-gray-600 dark:text-gray-400 mb-8">
+                            Are you sure you want to submit? You will not be able to change your answers after this action.
+                        </p>
+                        <div className="flex justify-end gap-4">
+                            <button 
+                                onClick={() => setShowConfirmModal(false)}
+                                className="px-6 py-2 rounded-xl font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+                            >
+                                Cancel
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    setShowConfirmModal(false);
+                                    performSubmit();
+                                }}
+                                className="px-6 py-2 rounded-xl font-bold bg-primary text-white hover:bg-primary-dark shadow-md transition"
+                            >
+                                Confirm Submit
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

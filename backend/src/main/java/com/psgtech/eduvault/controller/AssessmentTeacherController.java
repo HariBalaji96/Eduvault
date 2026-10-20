@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 public class AssessmentTeacherController {
 
     private final AssessmentTeacherService assessmentTeacherService;
+    private final com.psgtech.eduvault.service.GeminiService geminiService;
 
     @PostMapping
     public ResponseEntity<AssessmentTeacherDTO> createAssessment(@RequestBody AssessmentCreateDTO dto, @AuthenticationPrincipal(expression = "user") User teacher) {
@@ -47,8 +48,8 @@ public class AssessmentTeacherController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDraftAssessment(@PathVariable Long id, @AuthenticationPrincipal(expression = "user") User teacher) {
-        assessmentTeacherService.deleteDraftAssessment(id, teacher);
+    public ResponseEntity<Void> deleteAssessment(@PathVariable Long id, @AuthenticationPrincipal(expression = "user") User teacher) {
+        assessmentTeacherService.deleteAssessment(id, teacher);
         return ResponseEntity.noContent().build();
     }
 
@@ -70,5 +71,28 @@ public class AssessmentTeacherController {
     @GetMapping("/classroom/{classroomId}")
     public ResponseEntity<java.util.List<AssessmentTeacherDTO>> getClassroomAssessments(@PathVariable Long classroomId, @AuthenticationPrincipal(expression = "user") User teacher) {
         return ResponseEntity.ok(assessmentTeacherService.getClassroomAssessments(classroomId, teacher));
+    }
+
+    @PostMapping("/submissions/answers/{answerId}/evaluate")
+    public ResponseEntity<Void> evaluateAnswer(
+            @PathVariable Long answerId,
+            @RequestBody AnswerEvaluationDTO dto,
+            @AuthenticationPrincipal(expression = "user") User teacher) {
+        assessmentTeacherService.evaluateAnswer(answerId, dto, teacher);
+        return ResponseEntity.ok().build();
+    }
+    @PostMapping("/submissions/{submissionId}/auto-evaluate")
+    public ResponseEntity<Void> autoEvaluateSubmission(
+            @PathVariable Long submissionId,
+            @AuthenticationPrincipal(expression = "user") User teacher) {
+        assessmentTeacherService.autoEvaluateSubmission(submissionId, teacher, geminiService);
+        return ResponseEntity.ok().build();
+    }
+    @PostMapping("/{assessmentId}/publish-results")
+    public ResponseEntity<Void> publishResults(
+            @PathVariable Long assessmentId,
+            @AuthenticationPrincipal(expression = "user") User teacher) {
+        assessmentTeacherService.publishResults(assessmentId, teacher, geminiService);
+        return ResponseEntity.ok().build();
     }
 }

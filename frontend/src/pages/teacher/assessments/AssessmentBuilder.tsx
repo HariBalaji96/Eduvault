@@ -26,6 +26,7 @@ export default function AssessmentBuilder() {
     // Add Question Form States
     const [qText, setQText] = useState('');
     const [qMarks, setQMarks] = useState('');
+    const [isAddingQuestion, setIsAddingQuestion] = useState(false);
     
     // MCQ specific
     const [mcqOptions, setMcqOptions] = useState([{ optionText: '', isCorrect: false }, { optionText: '', isCorrect: false }]);
@@ -57,20 +58,25 @@ export default function AssessmentBuilder() {
 
     const handleCreateDraft = async (e: React.FormEvent) => {
         e.preventDefault();
+        const marksNum = Number(totalMarks);
+        if (isNaN(marksNum) || marksNum <= 0) {
+            alert("Expected Total Marks must be a positive number.");
+            return;
+        }
         try {
             const data = await assessmentApi.createAssessment({
                 title,
                 classroomId: Number(classroomId),
-                totalMarks: Number(totalMarks),
-                deadline: new Date(deadline).toISOString(),
+                totalMarks: marksNum,
+                deadline: deadline.length === 16 ? deadline + ':00' : deadline,
                 durationMinutes: hasTimer ? Number(durationMinutes) : null
             });
             setAssessmentId(data.id);
             setAssessmentData(data);
             setStep(2);
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Failed to create draft");
+            alert(error.response?.data?.message || "Failed to create draft");
         }
     };
 
@@ -79,41 +85,135 @@ export default function AssessmentBuilder() {
     };
 
     const handleRemoveMcqOption = (index: number) => {
+        if (mcqOptions.length <= 2) {
+            alert("An MCQ must have at least 2 options.");
+            return;
+        }
         setMcqOptions(mcqOptions.filter((_, i) => i !== index));
     };
 
+    const currentMarks = assessmentData?.questions?.reduce((sum: number, q: any) => sum + q.marks, 0) || 0;
+    const remainingMarks = assessmentData ? assessmentData.totalMarks - currentMarks : 0;
+
     const handleAddMcq = async () => {
-        if (!assessmentId) return;
+        if (!assessmentId || isAddingQuestion) return;
+
+        const textTrimmed = qText.trim();
+        if (!textTrimmed) {
+            alert("Please enter the question text.");
+            return;
+        }
+
+        const marksNum = Number(qMarks);
+        if (isNaN(marksNum) || marksNum <= 0) {
+            alert("Please enter a valid positive number for marks.");
+            return;
+        }
+
+        if (marksNum > remainingMarks + 0.001) {
+            alert(`Question marks (${marksNum}) exceeds remaining allowed marks (${remainingMarks}). Total marks must not exceed ${assessmentData?.totalMarks}.`);
+            return;
+        }
+
+        // Check for duplicate question text
+        const isDuplicate = assessmentData?.questions?.some((q: any) => q.text.trim().toLowerCase() === textTrimmed.toLowerCase());
+        if (isDuplicate) {
+            alert("A question with this exact text has already been added to this assessment.");
+            return;
+        }
+
+        if (mcqOptions.length < 2) {
+            alert("Please provide at least 2 options.");
+            return;
+        }
+
+        if (mcqOptions.some(opt => !opt.optionText.trim())) {
+            alert("All options must have text filled in.");
+            return;
+        }
+
+        if (!mcqOptions.some(opt => opt.isCorrect)) {
+            alert("At least one option must be marked as correct.");
+            return;
+        }
+
+        setIsAddingQuestion(true);
         try {
             await assessmentApi.addMcqQuestion(assessmentId, {
-                text: qText,
-                marks: Number(qMarks),
-                options: mcqOptions
+                text: textTrimmed,
+                marks: marksNum,
+                options: mcqOptions.map(o => ({ optionText: o.optionText.trim(), isCorrect: o.isCorrect }))
             });
             await fetchAssessment(assessmentId);
-            setQText(''); setQMarks(''); setMcqOptions([{ optionText: '', isCorrect: false }, { optionText: '', isCorrect: false }]);
-        } catch (err) {
+            setQText('');
+            setQMarks('');
+            setMcqOptions([{ optionText: '', isCorrect: false }, { optionText: '', isCorrect: false }]);
+        } catch (err: any) {
             console.error(err);
+            alert(err.response?.data?.message || "Failed to add MCQ question.");
+        } finally {
+            setIsAddingQuestion(false);
         }
     };
 
     const handleAddDescriptive = async () => {
-        if (!assessmentId) return;
+        if (!assessmentId || isAddingQuestion) return;
+
+        const textTrimmed = qText.trim();
+        if (!textTrimmed) {
+            alert("Please enter the question text.");
+            return;
+        }
+
+        const marksNum = Number(qMarks);
+        if (isNaN(marksNum) || marksNum <= 0) {
+            alert("Please enter a valid positive number for marks.");
+            return;
+        }
+
+        if (marksNum > remainingMarks + 0.001) {
+            alert(`Question marks (${marksNum}) exceeds remaining allowed marks (${remainingMarks}). Total marks must not exceed ${assessmentData?.totalMarks}.`);
+            return;
+        }
+
+        const isDuplicate = assessmentData?.questions?.some((q: any) => q.text.trim().toLowerCase() === textTrimmed.toLowerCase());
+        if (isDuplicate) {
+            alert("A question with this exact text has already been added to this assessment.");
+            return;
+        }
+
+        if (!modelAnswer.trim()) {
+            alert("Please provide a model answer for descriptive questions.");
+            return;
+        }
+
+        setIsAddingQuestion(true);
         try {
             await assessmentApi.addDescriptiveQuestion(assessmentId, {
-                text: qText,
-                marks: Number(qMarks),
-                modelAnswer
+                text: textTrimmed,
+                marks: marksNum,
+                modelAnswer: modelAnswer.trim()
             });
             await fetchAssessment(assessmentId);
-            setQText(''); setQMarks(''); setModelAnswer('');
-        } catch (err) {
+            setQText('');
+            setQMarks('');
+            setModelAnswer('');
+        } catch (err: any) {
             console.error(err);
+            alert(err.response?.data?.message || "Failed to add descriptive question.");
+        } finally {
+            setIsAddingQuestion(false);
         }
     };
 
     const handlePublish = async () => {
         if (!assessmentId) return;
+
+        if (Math.abs(currentMarks - assessmentData.totalMarks) > 0.001) {
+            alert(`Cannot publish: Total marks of created questions (${currentMarks}) must equal expected total marks (${assessmentData.totalMarks}). Please adjust your questions.`);
+            return;
+        }
+
         if (!window.confirm("Are you sure you want to publish? Students will be able to see it.")) return;
         try {
             await assessmentApi.publishAssessment(assessmentId);
@@ -123,8 +223,6 @@ export default function AssessmentBuilder() {
             alert(err.response?.data?.message || "Failed to publish");
         }
     };
-
-    const currentMarks = assessmentData?.questions?.reduce((sum: number, q: any) => sum + q.marks, 0) || 0;
 
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-8">
@@ -179,20 +277,48 @@ export default function AssessmentBuilder() {
 
             {step === 2 && assessmentData && (
                 <div className="space-y-6">
-                    <div className="flex items-center justify-between bg-primary/10 dark:bg-primary/30 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between bg-primary/10 dark:bg-primary/30 p-5 rounded-xl border border-blue-100 dark:border-blue-800 gap-4">
                         <div>
                             <h2 className="text-xl font-bold text-blue-900 dark:text-blue-100">{assessmentData.title}</h2>
-                            <p className="text-primary-dark dark:text-primary text-sm">Target Marks: {assessmentData.totalMarks} | Current: {currentMarks}</p>
+                            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm">
+                                <span className="font-semibold text-gray-700 dark:text-gray-300">Target Marks: <strong className="text-blue-700 dark:text-blue-300">{assessmentData.totalMarks}</strong></span>
+                                <span className="text-gray-400">|</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300">Added: <strong className="text-primary-dark dark:text-primary">{currentMarks}</strong></span>
+                                <span className="text-gray-400">|</span>
+                                <span className="font-semibold text-gray-700 dark:text-gray-300">Remaining: <strong className={remainingMarks === 0 ? 'text-green-600 dark:text-green-400' : remainingMarks > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}>{remainingMarks}</strong></span>
+                                
+                                {remainingMarks === 0 ? (
+                                    <span className="px-2.5 py-0.5 bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300 rounded-full text-xs font-bold border border-green-200 dark:border-green-800">✓ Target Marks Matched</span>
+                                ) : remainingMarks > 0 ? (
+                                    <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800">⚠ Needs {remainingMarks} more marks</span>
+                                ) : (
+                                    <span className="px-2.5 py-0.5 bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300 rounded-full text-xs font-bold border border-red-200 dark:border-red-800">⚠ Exceeds by {Math.abs(remainingMarks)} marks</span>
+                                )}
+                            </div>
                         </div>
                         <div className="flex gap-3">
                             <button onClick={() => navigate(-1)} className="flex items-center gap-2 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 px-5 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition font-medium shadow-sm">
-                                Save as Draft
+                                Back
                             </button>
-                            <button onClick={handlePublish} className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition font-medium shadow-sm">
-                                <CheckCircle2 size={18} /> Publish Assessment
-                            </button>
+                            {!assessmentData.publishedAt && (
+                                <button 
+                                    onClick={handlePublish} 
+                                    disabled={remainingMarks !== 0}
+                                    title={remainingMarks !== 0 ? `Total marks of created questions (${currentMarks}) must equal expected target marks (${assessmentData.totalMarks})` : 'Publish Assessment'}
+                                    className="flex items-center gap-2 bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700 transition font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <CheckCircle2 size={18} /> Publish Assessment
+                                </button>
+                            )}
                         </div>
                     </div>
+
+                    {assessmentData.publishedAt && (
+                        <div className="bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-200 p-4 rounded-xl border border-amber-200 dark:border-amber-800 font-medium">
+                            <AlertCircle size={20} className="inline mr-2" />
+                            This assessment is published. You can view its details but cannot edit questions or settings.
+                        </div>
+                    )}
 
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
                         <div className="flex border-b dark:border-gray-700">
@@ -212,11 +338,11 @@ export default function AssessmentBuilder() {
                             <div className="space-y-4 mb-6">
                                 <div>
                                     <label className="block text-sm font-medium mb-1">Question Text</label>
-                                    <textarea className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[100px]" value={qText} onChange={e => setQText(e.target.value)} />
+                                    <textarea disabled={!!assessmentData.publishedAt} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[100px] disabled:opacity-50" value={qText} onChange={e => setQText(e.target.value)} />
                                 </div>
                                 <div className="w-1/3">
                                     <label className="block text-sm font-medium mb-1">Marks</label>
-                                    <input type="number" min="1" className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600" value={qMarks} onChange={e => setQMarks(e.target.value)} />
+                                    <input disabled={!!assessmentData.publishedAt} type="number" min="1" className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50" value={qMarks} onChange={e => setQMarks(e.target.value)} />
                                 </div>
                             </div>
 
@@ -225,23 +351,25 @@ export default function AssessmentBuilder() {
                                     <label className="block text-sm font-medium mb-1">Options (Mark correct ones)</label>
                                     {mcqOptions.map((opt, idx) => (
                                         <div key={idx} className="flex items-center gap-3">
-                                            <input type="checkbox" className="w-5 h-5 text-primary" checked={opt.isCorrect} onChange={e => {
+                                            <input disabled={!!assessmentData.publishedAt} type="checkbox" className="w-5 h-5 text-primary disabled:opacity-50" checked={opt.isCorrect} onChange={e => {
                                                 const newOpts = [...mcqOptions];
                                                 newOpts[idx].isCorrect = e.target.checked;
                                                 setMcqOptions(newOpts);
                                             }} />
-                                            <input type="text" className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600" value={opt.optionText} onChange={e => {
+                                            <input disabled={!!assessmentData.publishedAt} type="text" className="flex-1 p-2 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 disabled:opacity-50" value={opt.optionText} onChange={e => {
                                                 const newOpts = [...mcqOptions];
                                                 newOpts[idx].optionText = e.target.value;
                                                 setMcqOptions(newOpts);
                                             }} placeholder={`Option ${idx + 1}`} />
-                                            <button onClick={() => handleRemoveMcqOption(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={18} /></button>
+                                            <button disabled={!!assessmentData.publishedAt} onClick={() => handleRemoveMcqOption(idx)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg disabled:opacity-50"><Trash2 size={18} /></button>
                                         </div>
                                     ))}
-                                    <button onClick={handleAddMcqOption} className="flex items-center gap-2 text-sm text-primary font-medium hover:underline"><Plus size={16} /> Add Option</button>
+                                    <button disabled={!!assessmentData.publishedAt} onClick={handleAddMcqOption} className="flex items-center gap-2 text-sm text-primary font-medium hover:underline disabled:opacity-50 disabled:cursor-not-allowed"><Plus size={16} /> Add Option</button>
                                     
                                     <div className="pt-4 border-t dark:border-gray-700">
-                                        <button onClick={handleAddMcq} className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition">Add MCQ Question</button>
+                                        <button disabled={!!assessmentData.publishedAt || isAddingQuestion} onClick={handleAddMcq} className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                            {isAddingQuestion ? 'Adding Question...' : 'Add MCQ Question'}
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -250,10 +378,12 @@ export default function AssessmentBuilder() {
                                 <div className="space-y-4">
                                     <div>
                                         <label className="block text-sm font-medium mb-1 flex items-center gap-2">Model Answer <span title="Used for AI evaluation later"><AlertCircle size={14} className="text-gray-400" /></span></label>
-                                        <textarea className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[100px]" value={modelAnswer} onChange={e => setModelAnswer(e.target.value)} />
+                                        <textarea disabled={!!assessmentData.publishedAt} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[100px] disabled:opacity-50" value={modelAnswer} onChange={e => setModelAnswer(e.target.value)} />
                                     </div>
                                     <div className="pt-4 border-t dark:border-gray-700">
-                                        <button onClick={handleAddDescriptive} className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition">Add Descriptive Question</button>
+                                        <button disabled={!!assessmentData.publishedAt || isAddingQuestion} onClick={handleAddDescriptive} className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-6 py-2 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                                            {isAddingQuestion ? 'Adding Question...' : 'Add Descriptive Question'}
+                                        </button>
                                     </div>
                                 </div>
                             )}
@@ -273,10 +403,12 @@ export default function AssessmentBuilder() {
                                         </div>
                                         <p className="text-gray-800 dark:text-gray-200">{q.text}</p>
                                     </div>
-                                    <button onClick={async () => {
-                                        await assessmentApi.deleteQuestion(q.id);
-                                        if (assessmentId) fetchAssessment(assessmentId);
-                                    }} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"><Trash2 size={18} /></button>
+                                    {!assessmentData.publishedAt && (
+                                        <button onClick={async () => {
+                                            await assessmentApi.deleteQuestion(q.id);
+                                            if (assessmentId) fetchAssessment(assessmentId);
+                                        }} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"><Trash2 size={18} /></button>
+                                    )}
                                 </div>
                             ))}
                             {(!assessmentData.questions || assessmentData.questions.length === 0) && (

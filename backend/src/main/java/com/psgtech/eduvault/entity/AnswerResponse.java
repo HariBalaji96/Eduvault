@@ -5,6 +5,9 @@ import lombok.*;
 import java.util.List;
 
 @Entity
+@Table(name = "answer_response", uniqueConstraints = {
+    @UniqueConstraint(columnNames = {"submission_id", "question_id"})
+})
 @Getter
 @Setter
 @NoArgsConstructor

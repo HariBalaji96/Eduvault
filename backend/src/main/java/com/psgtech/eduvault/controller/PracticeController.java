@@ -19,10 +19,12 @@ public class PracticeController {
 
     private final CodeExecutionService codeExecutionService;
     private final UserRepository userRepository;
+    private final com.psgtech.eduvault.service.GeminiService geminiService;
 
-    public PracticeController(CodeExecutionService codeExecutionService, UserRepository userRepository) {
+    public PracticeController(CodeExecutionService codeExecutionService, UserRepository userRepository, com.psgtech.eduvault.service.GeminiService geminiService) {
         this.codeExecutionService = codeExecutionService;
         this.userRepository = userRepository;
+        this.geminiService = geminiService;
     }
 
     @PostMapping("/execute")
@@ -41,5 +43,10 @@ public class PracticeController {
         tempCases.add(ctc);
 
         return ResponseEntity.ok(codeExecutionService.execute(student, null, request.getLanguage(), request.getCode(), tempCases));
+    }
+
+    @PostMapping("/analyze")
+    public ResponseEntity<com.psgtech.eduvault.dto.AiAnalysisDTO> analyzeCode(@Valid @RequestBody com.psgtech.eduvault.dto.CodeAnalysisRequestDTO request) {
+        return ResponseEntity.ok(geminiService.analyzeCode(request.getCode(), request.getLanguage()));
     }
 }

@@ -32,6 +32,11 @@ export const assessmentApi = {
     return response.data;
   },
 
+  publishResults: async (assessmentId: number) => {
+    const response = await api.post(`/teacher/assessments/${assessmentId}/publish-results`);
+    return response.data;
+  },
+
   getTeacherAssessment: async (assessmentId: number) => {
     const response = await api.get(`/teacher/assessments/${assessmentId}`);
     return response.data;
@@ -47,6 +52,11 @@ export const assessmentApi = {
     return response.data;
   },
 
+  evaluateAnswer: async (answerId: number, data: { score: number, feedback: string }) => {
+    const response = await api.post(`/teacher/assessments/submissions/answers/${answerId}/evaluate`, data);
+    return response.data;
+  },
+
   // Student Endpoints
   getStudentAssessments: async () => {
     const response = await api.get('/student/assessments');
@@ -55,6 +65,11 @@ export const assessmentApi = {
 
   getStudentAssessmentDetail: async (assessmentId: number) => {
     const response = await api.get(`/student/assessments/${assessmentId}`);
+    return response.data;
+  },
+
+  getAssessmentResult: async (assessmentId: number) => {
+    const response = await api.get(`/student/assessments/${assessmentId}/result`);
     return response.data;
   },
 
@@ -85,6 +100,11 @@ export const assessmentApi = {
 
   executePractice: async (data: { language: string; code: string; input?: string }) => {
     const response = await api.post('/student/practice/execute', data);
+    return response.data;
+  },
+
+  analyzeCode: async (data: { language: string; code: string }) => {
+    const response = await api.post('/student/practice/analyze', data);
     return response.data;
   },
 

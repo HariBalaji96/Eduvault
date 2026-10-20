@@ -26,7 +26,7 @@ const PostComposer: React.FC<PostComposerProps> = ({ onSubmit }) => {
                 type, 
                 title: type === 'ASSIGNMENT' ? title : undefined, 
                 content, 
-                dueDate: type === 'ASSIGNMENT' && dueDate ? new Date(dueDate).toISOString() : undefined, 
+                dueDate: type === 'ASSIGNMENT' && dueDate ? (dueDate.length === 16 ? dueDate + ':00' : dueDate) : undefined, 
                 attachmentUrl 
             });
             setContent('');

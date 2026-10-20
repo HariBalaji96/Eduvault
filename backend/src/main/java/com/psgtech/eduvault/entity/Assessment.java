@@ -34,4 +34,6 @@ public class Assessment extends Auditable {
     private Double totalMarks;
 
     private Integer durationMinutes;
+
+    private LocalDateTime resultsPublishedAt;
 }
