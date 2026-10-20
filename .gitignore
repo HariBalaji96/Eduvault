@@ -17,6 +17,8 @@ uploads/
 *.env
 *.env.local
 *.env.*.local
+*application-local.yml
+*-local.yml
 
 # IDEs
 .idea/

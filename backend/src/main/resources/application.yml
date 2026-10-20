@@ -1,4 +1,6 @@
 spring:
+  config:
+    import: "optional:classpath:application-local.yml"
   datasource:
     url: jdbc:mysql://localhost:3306/eduvault
     username: root
