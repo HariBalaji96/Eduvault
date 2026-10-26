@@ -26,7 +26,7 @@ public class Classroom extends Auditable {
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "school_class_id", nullable = false)
+    @JoinColumn(name = "school_class_id")
     private SchoolClass schoolClass;
 
 

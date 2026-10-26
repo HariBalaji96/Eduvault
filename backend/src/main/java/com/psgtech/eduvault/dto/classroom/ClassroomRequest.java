@@ -12,7 +12,6 @@ public class ClassroomRequest {
     private String name;
     @NotBlank
     private String subject;
-    @jakarta.validation.constraints.NotNull
     private Long schoolClassId;
     private String description;
     private List<Long> studentIds;

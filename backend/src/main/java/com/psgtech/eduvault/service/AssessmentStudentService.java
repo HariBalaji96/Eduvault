@@ -24,6 +24,7 @@ public class AssessmentStudentService {
     private final AnswerResponseRepository answerResponseRepository;
     private final CodeExecutionService codeExecutionService;
     private final CodingTestCaseRepository codingTestCaseRepository;
+    private final CodingQuestionDetailRepository codingQuestionDetailRepository;
     private final com.psgtech.eduvault.repository.DescriptiveModelAnswerRepository descriptiveModelAnswerRepository;
 
     @Transactional(readOnly = true)
@@ -177,6 +178,10 @@ public class AssessmentStudentService {
             }
         } else if (question.getType() == QuestionType.DESCRIPTIVE) {
             answer.setDescriptiveText(dto.getDescriptiveText());
+        } else if (question.getType() == QuestionType.CODING) {
+            if (dto.getCodeSubmitted() != null) {
+                answer.setCodeSubmitted(dto.getCodeSubmitted());
+            }
         }
 
         answerResponseRepository.save(answer);
@@ -213,6 +218,32 @@ public class AssessmentStudentService {
                     answer.setFinalScore(0.0);
                 }
                 answerResponseRepository.save(answer);
+            } else if (question.getType() == QuestionType.CODING) {
+                if (answer.getFinalScore() == null && answer.getCodeSubmitted() != null && !answer.getCodeSubmitted().trim().isEmpty()) {
+                    List<CodingTestCase> allCases = codingTestCaseRepository.findByQuestionId(question.getId());
+                    String lang = "java";
+                    Optional<CodingQuestionDetail> detail = codingQuestionDetailRepository.findByQuestionId(question.getId());
+                    if (detail.isPresent() && detail.get().getAllowedLanguage() != null && !detail.get().getAllowedLanguage().isEmpty()) {
+                        lang = detail.get().getAllowedLanguage().split(",")[0].trim().toLowerCase();
+                    }
+                    CodeExecutionResultDTO result = codeExecutionService.execute(student, question, lang, answer.getCodeSubmitted(), allCases);
+                    if (result.isCompiled() && allCases.size() > 0) {
+                        int totalTestCases = allCases.size();
+                        long correctTestCaseCount = result.getResults().stream().filter(TestCaseResultDTO::isPassed).count();
+                        double totalMarks = question.getMarks() != null ? question.getMarks() : 0.0;
+                        double markPerTestCase = totalMarks / (double) totalTestCases;
+                        double score = (correctTestCaseCount == totalTestCases)
+                                ? totalMarks
+                                : (correctTestCaseCount * markPerTestCase);
+                        answer.setFinalScore(score);
+                    } else {
+                        answer.setFinalScore(0.0);
+                    }
+                    answerResponseRepository.save(answer);
+                }
+                if (answer.getFinalScore() != null) {
+                    totalScore += answer.getFinalScore();
+                }
             } else {
                 if (answer.getFinalScore() != null) {
                     totalScore += answer.getFinalScore();
@@ -262,11 +293,27 @@ public class AssessmentStudentService {
         answer.setCodeSubmitted(dto.getCode());
         
         if (result.isCompiled() && allCases.size() > 0) {
-            long passed = result.getResults().stream().filter(TestCaseResultDTO::isPassed).count();
-            double score = question.getMarks() * ((double) passed / allCases.size());
+            int totalTestCases = allCases.size();
+            long correctTestCaseCount = result.getResults().stream().filter(TestCaseResultDTO::isPassed).count();
+            double totalMarks = question.getMarks() != null ? question.getMarks() : 0.0;
+            double markPerTestCase = totalMarks / (double) totalTestCases;
+            double score = (correctTestCaseCount == totalTestCases)
+                    ? totalMarks
+                    : (correctTestCaseCount * markPerTestCase);
+
             answer.setFinalScore(score);
+            result.setMarksAwarded(score);
+            result.setTotalMarks(totalMarks);
+            result.setMarkPerTestCase(markPerTestCase);
+            result.setCorrectTestCaseCount((int) correctTestCaseCount);
+            result.setTotalTestCaseCount(totalTestCases);
         } else {
             answer.setFinalScore(0.0);
+            result.setMarksAwarded(0.0);
+            result.setTotalMarks(question.getMarks() != null ? question.getMarks() : 0.0);
+            result.setMarkPerTestCase(allCases.size() > 0 && question.getMarks() != null ? (question.getMarks() / (double) allCases.size()) : 0.0);
+            result.setCorrectTestCaseCount(0);
+            result.setTotalTestCaseCount(allCases.size());
         }
         
         answerResponseRepository.save(answer);
@@ -290,6 +337,28 @@ public class AssessmentStudentService {
                 return optDto;
             }).collect(Collectors.toList()));
             dto.setIsMultipleAnswer(options.stream().filter(McqOption::isCorrect).count() > 1);
+        } else if (q.getType() == QuestionType.CODING) {
+            codingQuestionDetailRepository.findByQuestionId(q.getId()).ifPresent(detail -> {
+                CodingQuestionDetailDTO detailDto = new CodingQuestionDetailDTO();
+                detailDto.setId(detail.getId());
+                detailDto.setProblemStatement(detail.getProblemStatement());
+                detailDto.setInputDescription(detail.getInputDescription());
+                detailDto.setOutputDescription(detail.getOutputDescription());
+                detailDto.setConstraints(detail.getConstraints());
+                detailDto.setSampleInput(detail.getSampleInput());
+                detailDto.setSampleOutput(detail.getSampleOutput());
+                detailDto.setAllowedLanguage(detail.getAllowedLanguage());
+                dto.setCodingDetails(detailDto);
+            });
+            List<CodingTestCase> visibleCases = codingTestCaseRepository.findByQuestionIdAndIsHiddenFalse(q.getId());
+            dto.setSampleTestCases(visibleCases.stream().map(tc -> {
+                TestCaseDTO tcDto = new TestCaseDTO();
+                tcDto.setId(tc.getId());
+                tcDto.setInput(tc.getInput());
+                tcDto.setExpectedOutput(tc.getExpectedOutput());
+                tcDto.setHidden(false);
+                return tcDto;
+            }).collect(Collectors.toList()));
         }
         return dto;
     }

@@ -23,6 +23,9 @@ public class AssessmentTeacherService {
     private final DescriptiveModelAnswerRepository descriptiveModelAnswerRepository;
     private final SubmissionRepository submissionRepository;
     private final AnswerResponseRepository answerResponseRepository;
+    private final EmailNotificationService emailNotificationService;
+    private final CodingQuestionDetailRepository codingQuestionDetailRepository;
+    private final CodingTestCaseRepository codingTestCaseRepository;
 
     private Assessment getAndValidateAssessmentAccess(Long assessmentId, User teacher) {
         Assessment assessment = assessmentRepository.findById(assessmentId)
@@ -151,6 +154,66 @@ public class AssessmentTeacherService {
     }
 
     @Transactional
+    public QuestionTeacherDTO addCodingQuestion(Long assessmentId, CodingQuestionCreateDTO dto, User teacher) {
+        Assessment assessment = getAndValidateAssessmentAccess(assessmentId, teacher);
+        if (assessment.getPublishedAt() != null) {
+            throw new RuntimeException("Cannot edit a published assessment");
+        }
+
+        if (dto.getText() == null || dto.getText().trim().isEmpty()) {
+            throw new RuntimeException("Question title/summary is required");
+        }
+        if (dto.getMarks() == null || dto.getMarks() <= 0) {
+            throw new RuntimeException("Question marks must be greater than 0");
+        }
+        if (questionRepository.existsByAssessmentIdAndTextIgnoreCase(assessmentId, dto.getText().trim())) {
+            throw new RuntimeException("A question with this title already exists in this assessment");
+        }
+        Double currentTotal = questionRepository.sumMarksByAssessmentId(assessmentId);
+        if (currentTotal == null) currentTotal = 0.0;
+        if (currentTotal + dto.getMarks() > assessment.getTotalMarks() + 0.001) {
+            throw new RuntimeException("Adding " + dto.getMarks() + " marks would exceed expected total marks (" + assessment.getTotalMarks() + "). Remaining: " + (assessment.getTotalMarks() - currentTotal));
+        }
+
+        if (dto.getProblemStatement() == null || dto.getProblemStatement().trim().isEmpty()) {
+            throw new RuntimeException("Problem statement is required");
+        }
+        if (dto.getTestCases() == null || dto.getTestCases().isEmpty()) {
+            throw new RuntimeException("At least one testcase is required");
+        }
+
+        Question question = new Question();
+        question.setAssessment(assessment);
+        question.setType(QuestionType.CODING);
+        question.setText(dto.getText().trim());
+        question.setMarks(dto.getMarks());
+        question.setOrderIndex(questionRepository.countByAssessmentId(assessmentId) + 1);
+        question = questionRepository.save(question);
+
+        CodingQuestionDetail detail = new CodingQuestionDetail();
+        detail.setQuestion(question);
+        detail.setProblemStatement(dto.getProblemStatement().trim());
+        detail.setInputDescription(dto.getInputDescription() != null ? dto.getInputDescription().trim() : "");
+        detail.setOutputDescription(dto.getOutputDescription() != null ? dto.getOutputDescription().trim() : "");
+        detail.setConstraints(dto.getConstraints() != null ? dto.getConstraints().trim() : "");
+        detail.setSampleInput(dto.getSampleInput() != null ? dto.getSampleInput().trim() : "");
+        detail.setSampleOutput(dto.getSampleOutput() != null ? dto.getSampleOutput().trim() : "");
+        detail.setAllowedLanguage(dto.getAllowedLanguage() != null && !dto.getAllowedLanguage().trim().isEmpty() ? dto.getAllowedLanguage().trim() : "java,javascript");
+        codingQuestionDetailRepository.save(detail);
+
+        for (TestCaseDTO tc : dto.getTestCases()) {
+            CodingTestCase testCase = new CodingTestCase();
+            testCase.setQuestion(question);
+            testCase.setInput(tc.getInput() != null ? tc.getInput() : "");
+            testCase.setExpectedOutput(tc.getExpectedOutput() != null ? tc.getExpectedOutput().trim() : "");
+            testCase.setHidden(tc.isHidden());
+            codingTestCaseRepository.save(testCase);
+        }
+
+        return mapToQuestionTeacherDTO(question);
+    }
+
+    @Transactional
     public QuestionTeacherDTO updateQuestion(Long questionId, QuestionUpdateDTO dto, User teacher) {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new RuntimeException("Question not found"));
@@ -197,6 +260,9 @@ public class AssessmentTeacherService {
             if (ans != null) {
                 descriptiveModelAnswerRepository.delete(ans);
             }
+        } else if (question.getType() == QuestionType.CODING) {
+            codingTestCaseRepository.deleteByQuestionId(questionId);
+            codingQuestionDetailRepository.deleteByQuestionId(questionId);
         }
         questionRepository.delete(question);
     }
@@ -219,7 +285,8 @@ public class AssessmentTeacherService {
         }
 
         assessment.setPublishedAt(LocalDateTime.now());
-        assessmentRepository.save(assessment);
+        assessment = assessmentRepository.save(assessment);
+        emailNotificationService.notifyStudentsAssessmentPublished(assessment);
         
         return getAssessmentForTeacher(assessmentId, teacher);
     }
@@ -246,6 +313,9 @@ public class AssessmentTeacherService {
                 if (ans != null) {
                     descriptiveModelAnswerRepository.delete(ans);
                 }
+            } else if (q.getType() == QuestionType.CODING) {
+                codingTestCaseRepository.deleteByQuestionId(q.getId());
+                codingQuestionDetailRepository.deleteByQuestionId(q.getId());
             }
             questionRepository.delete(q);
         }
@@ -314,6 +384,28 @@ public class AssessmentTeacherService {
         } else if (q.getType() == QuestionType.DESCRIPTIVE) {
             descriptiveModelAnswerRepository.findByQuestionId(q.getId())
                 .ifPresent(ans -> dto.setModelAnswer(ans.getModelAnswerText()));
+        } else if (q.getType() == QuestionType.CODING) {
+            codingQuestionDetailRepository.findByQuestionId(q.getId()).ifPresent(detail -> {
+                CodingQuestionDetailDTO detailDto = new CodingQuestionDetailDTO();
+                detailDto.setId(detail.getId());
+                detailDto.setProblemStatement(detail.getProblemStatement());
+                detailDto.setInputDescription(detail.getInputDescription());
+                detailDto.setOutputDescription(detail.getOutputDescription());
+                detailDto.setConstraints(detail.getConstraints());
+                detailDto.setSampleInput(detail.getSampleInput());
+                detailDto.setSampleOutput(detail.getSampleOutput());
+                detailDto.setAllowedLanguage(detail.getAllowedLanguage());
+                dto.setCodingDetails(detailDto);
+            });
+            List<CodingTestCase> testCases = codingTestCaseRepository.findByQuestionId(q.getId());
+            dto.setTestCases(testCases.stream().map(tc -> {
+                TestCaseDTO tcDto = new TestCaseDTO();
+                tcDto.setId(tc.getId());
+                tcDto.setInput(tc.getInput());
+                tcDto.setExpectedOutput(tc.getExpectedOutput());
+                tcDto.setHidden(tc.isHidden());
+                return tcDto;
+            }).collect(Collectors.toList()));
         }
         return dto;
     }
@@ -494,6 +586,11 @@ public class AssessmentTeacherService {
                         ans.setFinalScore(0.0);
                         answerResponseRepository.save(ans);
                     }
+                }
+            } else if (q.getType() == QuestionType.CODING) {
+                if (ans.getFinalScore() == null) {
+                    ans.setFinalScore(0.0);
+                    answerResponseRepository.save(ans);
                 }
             }
         }

@@ -21,18 +21,31 @@ public class StudentService {
     private final Validator validator;
 
     private final com.psgtech.eduvault.repository.SchoolClassRepository schoolClassRepository;
+    private final com.psgtech.eduvault.repository.StudentStreakRepository studentStreakRepository;
 
-    public StudentService(UserRepository userRepository, PasswordEncoder passwordEncoder, Validator validator, com.psgtech.eduvault.repository.SchoolClassRepository schoolClassRepository) {
+    public StudentService(UserRepository userRepository, PasswordEncoder passwordEncoder, Validator validator,
+                          com.psgtech.eduvault.repository.SchoolClassRepository schoolClassRepository,
+                          com.psgtech.eduvault.repository.StudentStreakRepository studentStreakRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.validator = validator;
         this.schoolClassRepository = schoolClassRepository;
+        this.studentStreakRepository = studentStreakRepository;
     }
 
     @Transactional
     public List<UserResponse> getAllStudents() {
-        return userRepository.findByRole(Role.STUDENT).stream()
-                .map(this::mapToResponse)
+        List<User> students = userRepository.findByRole(Role.STUDENT);
+        if (students.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Map<Long, com.psgtech.eduvault.entity.StudentStreak> streakMap = studentStreakRepository.findAll().stream()
+                .filter(s -> s.getStudent() != null)
+                .collect(Collectors.toMap(s -> s.getStudent().getId(), s -> s, (s1, s2) -> s1));
+
+        return students.stream()
+                .map(user -> mapToResponseWithStreak(user, streakMap.get(user.getId())))
                 .collect(Collectors.toList());
     }
 
@@ -41,8 +54,10 @@ public class StudentService {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if (request.getRegistrationId() != null && !request.getRegistrationId().isBlank() &&
-            userRepository.findByRegistrationId(request.getRegistrationId()).isPresent()) {
+        String regId = (request.getRegistrationId() != null && !request.getRegistrationId().isBlank())
+                ? request.getRegistrationId().trim()
+                : null;
+        if (regId != null && userRepository.findByRegistrationId(regId).isPresent()) {
             throw new IllegalArgumentException("Registration ID already exists");
         }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
@@ -54,7 +69,7 @@ public class StudentService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.STUDENT);
         user.setActive(true);
-        user.setRegistrationId(request.getRegistrationId());
+        user.setRegistrationId(regId);
 
         if (request.getSchoolClassId() != null) {
             com.psgtech.eduvault.entity.SchoolClass schoolClass = schoolClassRepository.findById(request.getSchoolClassId())
@@ -79,6 +94,7 @@ public class StudentService {
         List<String> allRegistrationIds = requests.stream()
                 .map(UserRequest::getRegistrationId)
                 .filter(id -> id != null && !id.isBlank())
+                .map(String::trim)
                 .collect(Collectors.toList());
         Set<String> existingRegistrationIds = allRegistrationIds.isEmpty() ? Collections.emptySet() :
                 userRepository.findByRegistrationIdIn(allRegistrationIds).stream()
@@ -105,14 +121,19 @@ public class StudentService {
                 skipped.add(new BulkSkippedRow(req, "Email already exists in database"));
                 continue;
             }
-            if (req.getRegistrationId() != null && !req.getRegistrationId().isBlank()) {
-                if (seenRegistrationIdsInBatch.contains(req.getRegistrationId())) {
+
+            String regId = (req.getRegistrationId() != null && !req.getRegistrationId().isBlank())
+                    ? req.getRegistrationId().trim()
+                    : null;
+
+            if (regId != null) {
+                if (seenRegistrationIdsInBatch.contains(regId)) {
                     skipped.add(new BulkSkippedRow(req, "Duplicate registration ID within batch"));
                     continue;
                 }
-                seenRegistrationIdsInBatch.add(req.getRegistrationId());
+                seenRegistrationIdsInBatch.add(regId);
 
-                if (existingRegistrationIds.contains(req.getRegistrationId())) {
+                if (existingRegistrationIds.contains(regId)) {
                     skipped.add(new BulkSkippedRow(req, "Registration ID already exists in database"));
                     continue;
                 }
@@ -128,7 +149,7 @@ public class StudentService {
             user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
             user.setRole(Role.STUDENT);
             user.setActive(true);
-            user.setRegistrationId(req.getRegistrationId());
+            user.setRegistrationId(regId);
 
             if (req.getSchoolClassId() != null) {
                 com.psgtech.eduvault.entity.SchoolClass schoolClass = schoolClassRepository.findById(req.getSchoolClassId())
@@ -149,14 +170,16 @@ public class StudentService {
         if (!user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if (request.getRegistrationId() != null && !request.getRegistrationId().isBlank() && 
-            !request.getRegistrationId().equals(user.getRegistrationId()) &&
-            userRepository.findByRegistrationId(request.getRegistrationId()).isPresent()) {
+        String regId = (request.getRegistrationId() != null && !request.getRegistrationId().isBlank())
+                ? request.getRegistrationId().trim()
+                : null;
+        if (regId != null && !regId.equals(user.getRegistrationId()) &&
+            userRepository.findByRegistrationId(regId).isPresent()) {
             throw new IllegalArgumentException("Registration ID already exists");
         }
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setRegistrationId(request.getRegistrationId());
+        user.setRegistrationId(regId);
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }
@@ -184,10 +207,42 @@ public class StudentService {
     }
 
     private UserResponse mapToResponse(User user) {
+        var streak = studentStreakRepository.findByStudentId(user.getId()).orElse(null);
+        return mapToResponseWithStreak(user, streak);
+    }
+
+    private UserResponse mapToResponseWithStreak(User user, com.psgtech.eduvault.entity.StudentStreak streak) {
         String fullName = user.getName() != null ? user.getName().trim() : "";
         int spaceIdx = fullName.indexOf(' ');
         String firstName = spaceIdx == -1 ? fullName : fullName.substring(0, spaceIdx);
         String lastName = spaceIdx == -1 ? "" : fullName.substring(spaceIdx + 1).trim();
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        int currentStreak = 0;
+        int highestStreak = 0;
+        java.time.LocalDate lastActiveDate = null;
+        boolean activeToday = false;
+        String streakStatus = "INACTIVE";
+
+        if (streak != null) {
+            highestStreak = streak.getHighestStreak();
+            lastActiveDate = streak.getLastActiveDate();
+
+            if (lastActiveDate != null) {
+                if (lastActiveDate.isEqual(today)) {
+                    currentStreak = streak.getCurrentStreak();
+                    activeToday = true;
+                    streakStatus = "ACTIVE";
+                } else if (lastActiveDate.isEqual(today.minusDays(1))) {
+                    currentStreak = streak.getCurrentStreak();
+                    activeToday = false;
+                    streakStatus = "AT_RISK";
+                } else {
+                    currentStreak = 0;
+                    streakStatus = "BROKEN";
+                }
+            }
+        }
 
         return UserResponse.builder()
                 .id(user.getId())
@@ -197,10 +252,14 @@ public class StudentService {
                 .role(user.getRole())
                 .active(user.isActive())
                 .createdAt(user.getCreatedAt())
-
                 .registrationId(user.getRegistrationId())
                 .schoolClassId(user.getSchoolClass() != null ? user.getSchoolClass().getId() : null)
                 .schoolClassName(user.getSchoolClass() != null ? user.getSchoolClass().getName() : null)
+                .currentStreak(currentStreak)
+                .highestStreak(highestStreak)
+                .lastActiveDate(lastActiveDate)
+                .activeToday(activeToday)
+                .streakStatus(streakStatus)
                 .build();
     }
 }

@@ -37,8 +37,10 @@ public class TeacherService {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if (request.getRegistrationId() != null && !request.getRegistrationId().isBlank() &&
-            userRepository.findByRegistrationId(request.getRegistrationId()).isPresent()) {
+        String regId = (request.getRegistrationId() != null && !request.getRegistrationId().isBlank())
+                ? request.getRegistrationId().trim()
+                : null;
+        if (regId != null && userRepository.findByRegistrationId(regId).isPresent()) {
             throw new IllegalArgumentException("Registration ID already exists");
         }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
@@ -50,7 +52,7 @@ public class TeacherService {
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setRole(Role.TEACHER);
         user.setActive(true);
-        user.setRegistrationId(request.getRegistrationId());
+        user.setRegistrationId(regId);
         return mapToResponse(userRepository.save(user));
     }
 
@@ -68,6 +70,7 @@ public class TeacherService {
         List<String> allRegistrationIds = requests.stream()
                 .map(UserRequest::getRegistrationId)
                 .filter(id -> id != null && !id.isBlank())
+                .map(String::trim)
                 .collect(Collectors.toList());
         Set<String> existingRegistrationIds = allRegistrationIds.isEmpty() ? Collections.emptySet() :
                 userRepository.findByRegistrationIdIn(allRegistrationIds).stream()
@@ -94,14 +97,19 @@ public class TeacherService {
                 skipped.add(new BulkSkippedRow(req, "Email already exists in database"));
                 continue;
             }
-            if (req.getRegistrationId() != null && !req.getRegistrationId().isBlank()) {
-                if (seenRegistrationIdsInBatch.contains(req.getRegistrationId())) {
+
+            String regId = (req.getRegistrationId() != null && !req.getRegistrationId().isBlank())
+                    ? req.getRegistrationId().trim()
+                    : null;
+
+            if (regId != null) {
+                if (seenRegistrationIdsInBatch.contains(regId)) {
                     skipped.add(new BulkSkippedRow(req, "Duplicate registration ID within batch"));
                     continue;
                 }
-                seenRegistrationIdsInBatch.add(req.getRegistrationId());
+                seenRegistrationIdsInBatch.add(regId);
 
-                if (existingRegistrationIds.contains(req.getRegistrationId())) {
+                if (existingRegistrationIds.contains(regId)) {
                     skipped.add(new BulkSkippedRow(req, "Registration ID already exists in database"));
                     continue;
                 }
@@ -117,7 +125,7 @@ public class TeacherService {
             user.setPasswordHash(passwordEncoder.encode(req.getPassword()));
             user.setRole(Role.TEACHER);
             user.setActive(true);
-            user.setRegistrationId(req.getRegistrationId());
+            user.setRegistrationId(regId);
             usersToSave.add(user);
         }
 
@@ -131,14 +139,16 @@ public class TeacherService {
         if (!user.getEmail().equals(request.getEmail()) && userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already exists");
         }
-        if (request.getRegistrationId() != null && !request.getRegistrationId().isBlank() && 
-            !request.getRegistrationId().equals(user.getRegistrationId()) &&
-            userRepository.findByRegistrationId(request.getRegistrationId()).isPresent()) {
+        String regId = (request.getRegistrationId() != null && !request.getRegistrationId().isBlank())
+                ? request.getRegistrationId().trim()
+                : null;
+        if (regId != null && !regId.equals(user.getRegistrationId()) &&
+            userRepository.findByRegistrationId(regId).isPresent()) {
             throw new IllegalArgumentException("Registration ID already exists");
         }
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setRegistrationId(request.getRegistrationId());
+        user.setRegistrationId(regId);
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         }

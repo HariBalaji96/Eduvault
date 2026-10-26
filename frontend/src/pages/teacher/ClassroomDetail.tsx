@@ -5,7 +5,7 @@ import { assessmentApi } from '../../services/assessmentApi';
 import PostComposer from '../../components/classroom/PostComposer';
 import PostList from '../../components/classroom/PostList';
 import Modal from '../../components/Modal';
-import { UserPlus, Trash2 } from 'lucide-react';
+import { UserPlus, Trash2, Flame } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -294,11 +294,24 @@ const ClassroomDetail: React.FC = () => {
                                                     <p className="text-sm text-gray-500">{s.email}</p>
                                                 </div>
                                             </div>
-                                            {isOwner && (
-                                                <button onClick={() => handleRemoveStudent(s.id)} className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove student">
-                                                    <Trash2 size={18} />
-                                                </button>
-                                            )}
+                                            <div className="flex items-center gap-3">
+                                                <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                                                    (s.currentStreak && s.currentStreak > 0)
+                                                        ? s.activeToday
+                                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-300/40'
+                                                            : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                                                        : 'bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-gray-400'
+                                                }`}>
+                                                    <Flame size={13} className={s.currentStreak && s.currentStreak > 0 ? "text-amber-500 fill-amber-500" : "text-gray-400"} />
+                                                    <span>{s.currentStreak || 0} {s.currentStreak === 1 ? 'day' : 'days'} streak</span>
+                                                    {s.activeToday && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Active today" />}
+                                                </div>
+                                                {isOwner && (
+                                                    <button onClick={() => handleRemoveStudent(s.id)} className="text-gray-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20" title="Remove student">
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     ))
                                 )}

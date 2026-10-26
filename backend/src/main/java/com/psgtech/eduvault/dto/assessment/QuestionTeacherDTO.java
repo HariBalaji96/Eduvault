@@ -17,4 +17,8 @@ public class QuestionTeacherDTO {
     
     // For Descriptive
     private String modelAnswer;
+
+    // For Coding
+    private CodingQuestionDetailDTO codingDetails;
+    private List<TestCaseDTO> testCases;
 }

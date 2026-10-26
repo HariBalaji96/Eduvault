@@ -22,6 +22,7 @@ import ResultView from './pages/student/assessments/ResultView';
 import PracticePage from './pages/student/practice/PracticePage';
 import StudentDashboard from './pages/student/StudentDashboard';
 import StudentClassroomDetail from './pages/student/StudentClassroomDetail';
+import LeaderboardPage from './pages/LeaderboardPage';
 
 import { useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
@@ -52,6 +53,7 @@ const RouteTitleUpdater = () => {
     else if (path.match(/\/student\/assessments\/\d+\/take/)) title = 'Take Assessment | Student';
     else if (path.match(/\/student\/assessments\/\d+\/result/)) title = 'Assessment Result | Student';
     else if (path === '/student/practice') title = 'Practice | Student';
+    else if (path.includes('/leaderboard')) title = 'Leaderboard';
 
     document.title = title === 'Eduvault' ? title : `${title} | Eduvault`;
   }, [location]);
@@ -78,6 +80,7 @@ function App() {
                 <Route path="teachers" element={<TeacherManagement />} />
                 <Route path="classes" element={<ClassManagement />} />
                 <Route path="classrooms" element={<AdminClassroomList />} />
+                <Route path="leaderboard" element={<LeaderboardPage />} />
             </Route>
           </Route>
 
@@ -89,6 +92,7 @@ function App() {
                 <Route path="assessments/:id/edit" element={<AssessmentBuilder />} />
                 <Route path="assessments/:id/results" element={<AssessmentResults />} />
                 <Route path="submissions/:id" element={<SubmissionReview />} />
+                <Route path="leaderboard" element={<LeaderboardPage />} />
             </Route>
           </Route>
 
@@ -100,6 +104,7 @@ function App() {
                 <Route path="assessments/:id/take" element={<TakeAssessment />} />
                 <Route path="assessments/:id/result" element={<ResultView />} />
                 <Route path="practice" element={<PracticePage />} />
+                <Route path="leaderboard" element={<LeaderboardPage />} />
             </Route>
           </Route>
         </Routes>

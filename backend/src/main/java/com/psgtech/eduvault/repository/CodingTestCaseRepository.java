@@ -10,4 +10,5 @@ import java.util.List;
 public interface CodingTestCaseRepository extends JpaRepository<CodingTestCase, Long> {
     List<CodingTestCase> findByQuestionId(Long questionId);
     List<CodingTestCase> findByQuestionIdAndIsHiddenFalse(Long questionId);
+    void deleteByQuestionId(Long questionId);
 }

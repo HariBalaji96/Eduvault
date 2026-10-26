@@ -10,11 +10,9 @@ const TeacherDashboard: React.FC = () => {
     
     const [name, setName] = useState('');
     const [subject, setSubject] = useState('');
-    const [schoolClassId, setSchoolClassId] = useState('');
     const [description, setDescription] = useState('');
     const [studentIds, setStudentIds] = useState<number[]>([]);
     const [availableStudents, setAvailableStudents] = useState<any[]>([]);
-    const [schoolClasses, setSchoolClasses] = useState<any[]>([]);
     
     // New states for the multi-step form and filtering
     const [step, setStep] = useState(1);
@@ -42,27 +40,17 @@ const TeacherDashboard: React.FC = () => {
         }
     };
 
-    const fetchSchoolClasses = async () => {
-        try {
-            const res = await client.get('/teacher/classrooms/school-classes');
-            setSchoolClasses(res.data);
-        } catch (err) {
-            console.error("Failed to fetch school classes", err);
-        }
-    };
-
     useEffect(() => {
         fetchClassrooms();
         fetchStudents();
-        fetchSchoolClasses();
     }, []);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await client.post('/teacher/classrooms', { name, subject, schoolClassId: Number(schoolClassId), description, studentIds });
+            await client.post('/teacher/classrooms', { name, subject, description, studentIds });
             setModalOpen(false);
-            setName(''); setSubject(''); setSchoolClassId(''); setDescription(''); setStudentIds([]);
+            setName(''); setSubject(''); setDescription(''); setStudentIds([]);
             setStep(1);
             setSearchQuery('');
             fetchClassrooms();
@@ -146,15 +134,6 @@ const TeacherDashboard: React.FC = () => {
                             <div className="space-y-1.5">
                                 <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Subject</label>
                                 <input type="text" required value={subject} onChange={e => setSubject(e.target.value)} className="modern-input" placeholder="e.g. Physics" />
-                            </div>
-                            <div className="space-y-1.5">
-                                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Target Class</label>
-                                <select required value={schoolClassId} onChange={e => setSchoolClassId(e.target.value)} className="modern-input">
-                                    <option value="">Select a class...</option>
-                                    {schoolClasses.map(sc => (
-                                        <option key={sc.id} value={sc.id}>{sc.name} ({sc.yearLabel} {sc.batchName})</option>
-                                    ))}
-                                </select>
                             </div>
 
                             <div className="space-y-1.5">

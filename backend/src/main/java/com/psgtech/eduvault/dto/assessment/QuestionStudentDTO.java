@@ -15,4 +15,8 @@ public class QuestionStudentDTO {
     // For MCQ
     private List<McqOptionStudentDTO> options;
     private Boolean isMultipleAnswer;
+
+    // For Coding
+    private CodingQuestionDetailDTO codingDetails;
+    private List<TestCaseDTO> sampleTestCases;
 }

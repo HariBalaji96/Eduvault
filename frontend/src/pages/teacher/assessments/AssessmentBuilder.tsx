@@ -34,6 +34,19 @@ export default function AssessmentBuilder() {
     // Descriptive specific
     const [modelAnswer, setModelAnswer] = useState('');
 
+    // Coding specific
+    const [problemStatement, setProblemStatement] = useState('');
+    const [inputDescription, setInputDescription] = useState('');
+    const [outputDescription, setOutputDescription] = useState('');
+    const [constraints, setConstraints] = useState('');
+    const [sampleInput, setSampleInput] = useState('');
+    const [sampleOutput, setSampleOutput] = useState('');
+    const [allowedLanguage, setAllowedLanguage] = useState('java,javascript');
+    const [testCases, setTestCases] = useState<Array<{ input: string; expectedOutput: string; hidden: boolean }>>([
+        { input: '', expectedOutput: '', hidden: false },
+        { input: '', expectedOutput: '', hidden: true }
+    ]);
+
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -206,6 +219,100 @@ export default function AssessmentBuilder() {
         }
     };
 
+    const handleAddTestCase = () => {
+        setTestCases([...testCases, { input: '', expectedOutput: '', hidden: false }]);
+    };
+
+    const handleRemoveTestCase = (index: number) => {
+        if (testCases.length <= 1) {
+            alert("At least one test case is required.");
+            return;
+        }
+        setTestCases(testCases.filter((_, i) => i !== index));
+    };
+
+    const handleAddCoding = async () => {
+        if (!assessmentId || isAddingQuestion) return;
+
+        const textTrimmed = qText.trim();
+        if (!textTrimmed) {
+            alert("Please enter the question title/summary.");
+            return;
+        }
+
+        const marksNum = Number(qMarks);
+        if (isNaN(marksNum) || marksNum <= 0) {
+            alert("Please enter a valid positive number for marks.");
+            return;
+        }
+
+        if (marksNum > remainingMarks + 0.001) {
+            alert(`Question marks (${marksNum}) exceeds remaining allowed marks (${remainingMarks}). Total marks must not exceed ${assessmentData?.totalMarks}.`);
+            return;
+        }
+
+        const isDuplicate = assessmentData?.questions?.some((q: any) => q.text.trim().toLowerCase() === textTrimmed.toLowerCase());
+        if (isDuplicate) {
+            alert("A question with this exact title has already been added to this assessment.");
+            return;
+        }
+
+        if (!problemStatement.trim()) {
+            alert("Please provide the problem statement.");
+            return;
+        }
+
+        if (testCases.length === 0) {
+            alert("Please provide at least one test case.");
+            return;
+        }
+
+        for (let i = 0; i < testCases.length; i++) {
+            if (!testCases[i].expectedOutput.trim()) {
+                alert(`Test case ${i + 1} must have an expected output.`);
+                return;
+            }
+        }
+
+        setIsAddingQuestion(true);
+        try {
+            await assessmentApi.addCodingQuestion(assessmentId, {
+                text: textTrimmed,
+                marks: marksNum,
+                problemStatement: problemStatement.trim(),
+                inputDescription: inputDescription.trim(),
+                outputDescription: outputDescription.trim(),
+                constraints: constraints.trim(),
+                sampleInput: sampleInput.trim(),
+                sampleOutput: sampleOutput.trim(),
+                allowedLanguage,
+                testCases: testCases.map(tc => ({
+                    input: tc.input,
+                    expectedOutput: tc.expectedOutput.trim(),
+                    hidden: tc.hidden
+                }))
+            });
+            await fetchAssessment(assessmentId);
+            setQText('');
+            setQMarks('');
+            setProblemStatement('');
+            setInputDescription('');
+            setOutputDescription('');
+            setConstraints('');
+            setSampleInput('');
+            setSampleOutput('');
+            setTestCases([
+                { input: '', expectedOutput: '', hidden: false },
+                { input: '', expectedOutput: '', hidden: true }
+            ]);
+        } catch (err: any) {
+            console.error(err);
+            alert(err.response?.data?.message || "Failed to add coding question.");
+        } finally {
+            setIsAddingQuestion(false);
+        }
+    };
+
     const handlePublish = async () => {
         if (!assessmentId) return;
 
@@ -325,11 +432,10 @@ export default function AssessmentBuilder() {
                             {['MCQ', 'DESCRIPTIVE', 'CODING'].map(tab => (
                                 <button
                                     key={tab}
-                                    disabled={tab === 'CODING'}
                                     onClick={() => setActiveTab(tab as any)}
-                                    className={`flex-1 py-4 text-center font-medium transition ${activeTab === tab ? 'bg-primary/10 dark:bg-blue-900/20 text-primary dark:text-primary border-b-2 border-primary' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'} ${tab === 'CODING' && 'opacity-50 cursor-not-allowed'}`}
+                                    className={`flex-1 py-4 text-center font-medium transition ${activeTab === tab ? 'bg-primary/10 dark:bg-blue-900/20 text-primary dark:text-primary border-b-2 border-primary' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                                 >
-                                    {tab} {tab === 'CODING' && '(Coming Soon)'}
+                                    {tab}
                                 </button>
                             ))}
                         </div>
@@ -337,7 +443,9 @@ export default function AssessmentBuilder() {
                         <div className="p-6">
                             <div className="space-y-4 mb-6">
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">Question Text</label>
+                                    <label className="block text-sm font-medium mb-1">
+                                        {activeTab === 'CODING' ? 'Question Title / Summary' : 'Question Text'}
+                                    </label>
                                     <textarea disabled={!!assessmentData.publishedAt} className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[100px] disabled:opacity-50" value={qText} onChange={e => setQText(e.target.value)} />
                                 </div>
                                 <div className="w-1/3">
@@ -387,6 +495,187 @@ export default function AssessmentBuilder() {
                                     </div>
                                 </div>
                             )}
+
+                            {activeTab === 'CODING' && (
+                                <div className="space-y-5">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Problem Statement <span className="text-red-500">*</span></label>
+                                        <textarea 
+                                            disabled={!!assessmentData.publishedAt} 
+                                            placeholder="Detailed description of the coding task..."
+                                            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[120px] disabled:opacity-50" 
+                                            value={problemStatement} 
+                                            onChange={e => setProblemStatement(e.target.value)} 
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Input Format Description</label>
+                                            <textarea 
+                                                disabled={!!assessmentData.publishedAt} 
+                                                placeholder="e.g. First line contains integer N..."
+                                                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[80px] disabled:opacity-50" 
+                                                value={inputDescription} 
+                                                onChange={e => setInputDescription(e.target.value)} 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Output Format Description</label>
+                                            <textarea 
+                                                disabled={!!assessmentData.publishedAt} 
+                                                placeholder="e.g. Print the maximum sum..."
+                                                className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[80px] disabled:opacity-50" 
+                                                value={outputDescription} 
+                                                onChange={e => setOutputDescription(e.target.value)} 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Constraints</label>
+                                        <textarea 
+                                            disabled={!!assessmentData.publishedAt} 
+                                            placeholder="e.g. 1 <= N <= 10^5, -1000 <= arr[i] <= 1000"
+                                            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[60px] disabled:opacity-50" 
+                                            value={constraints} 
+                                            onChange={e => setConstraints(e.target.value)} 
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Sample Input</label>
+                                            <textarea 
+                                                disabled={!!assessmentData.publishedAt} 
+                                                placeholder="5\n1 2 3 4 5"
+                                                className="w-full p-3 font-mono text-sm border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[80px] disabled:opacity-50" 
+                                                value={sampleInput} 
+                                                onChange={e => setSampleInput(e.target.value)} 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium mb-1">Sample Output</label>
+                                            <textarea 
+                                                disabled={!!assessmentData.publishedAt} 
+                                                placeholder="15"
+                                                className="w-full p-3 font-mono text-sm border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600 min-h-[80px] disabled:opacity-50" 
+                                                value={sampleOutput} 
+                                                onChange={e => setSampleOutput(e.target.value)} 
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Allowed Programming Languages</label>
+                                        <select 
+                                            disabled={!!assessmentData.publishedAt}
+                                            value={allowedLanguage}
+                                            onChange={e => setAllowedLanguage(e.target.value)}
+                                            className="w-full md:w-1/2 p-2 border rounded-lg focus:ring-2 focus:ring-primary bg-gray-50 dark:bg-gray-700 dark:border-gray-600"
+                                        >
+                                            <option value="java,javascript">Java & JavaScript (Recommended)</option>
+                                            <option value="java">Java 17 Only</option>
+                                            <option value="javascript">JavaScript Only</option>
+                                            <option value="java,javascript,python,cpp">All Languages</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Test cases */}
+                                    <div className="pt-4 border-t dark:border-gray-700 space-y-4">
+                                        <div className="flex justify-between items-center">
+                                            <div>
+                                                <h4 className="font-semibold text-gray-800 dark:text-gray-200">Test Cases (LeetCode Evaluation Style)</h4>
+                                                <p className="text-xs text-gray-500">Students run code against visible test cases; hidden test cases are used for final scoring.</p>
+                                            </div>
+                                            <button 
+                                                disabled={!!assessmentData.publishedAt} 
+                                                onClick={handleAddTestCase} 
+                                                className="flex items-center gap-1.5 text-xs bg-primary/10 text-primary dark:text-primary px-3 py-1.5 rounded-lg font-bold hover:bg-primary/20 transition disabled:opacity-50"
+                                            >
+                                                <Plus size={14} /> Add Test Case
+                                            </button>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            {testCases.map((tc, idx) => (
+                                                <div key={idx} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 space-y-3">
+                                                    <div className="flex justify-between items-center">
+                                                        <span className="font-bold text-sm text-gray-700 dark:text-gray-300">Test Case #{idx + 1}</span>
+                                                        <div className="flex items-center gap-4">
+                                                            <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold">
+                                                                <input 
+                                                                    disabled={!!assessmentData.publishedAt}
+                                                                    type="checkbox" 
+                                                                    checked={tc.hidden} 
+                                                                    onChange={e => {
+                                                                        const updated = [...testCases];
+                                                                        updated[idx].hidden = e.target.checked;
+                                                                        setTestCases(updated);
+                                                                    }}
+                                                                    className="w-4 h-4 text-primary rounded" 
+                                                                />
+                                                                <span className={tc.hidden ? 'text-amber-600 dark:text-amber-400 font-bold' : 'text-gray-500'}>
+                                                                    {tc.hidden ? '🔒 Hidden Case' : '👁 Visible Sample'}
+                                                                </span>
+                                                            </label>
+                                                            <button 
+                                                                disabled={!!assessmentData.publishedAt} 
+                                                                onClick={() => handleRemoveTestCase(idx)} 
+                                                                className="text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 p-1 rounded disabled:opacity-50"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="block text-xs text-gray-500 mb-1">Standard Input</label>
+                                                            <textarea 
+                                                                disabled={!!assessmentData.publishedAt}
+                                                                rows={2}
+                                                                placeholder="Input passed to stdin..."
+                                                                className="w-full p-2 font-mono text-xs border rounded bg-white dark:bg-gray-800 dark:border-gray-700 text-gray-800 dark:text-gray-200"
+                                                                value={tc.input} 
+                                                                onChange={e => {
+                                                                    const updated = [...testCases];
+                                                                    updated[idx].input = e.target.value;
+                                                                    setTestCases(updated);
+                                                                }} 
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs text-gray-500 mb-1">Expected Output <span className="text-red-500">*</span></label>
+                                                            <textarea 
+                                                                disabled={!!assessmentData.publishedAt}
+                                                                rows={2}
+                                                                placeholder="Expected stdout output..."
+                                                                className="w-full p-2 font-mono text-xs border rounded bg-white dark:bg-gray-800 dark:border-gray-700 text-gray-800 dark:text-gray-200"
+                                                                value={tc.expectedOutput} 
+                                                                onChange={e => {
+                                                                    const updated = [...testCases];
+                                                                    updated[idx].expectedOutput = e.target.value;
+                                                                    setTestCases(updated);
+                                                                }} 
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 border-t dark:border-gray-700">
+                                        <button 
+                                            disabled={!!assessmentData.publishedAt || isAddingQuestion} 
+                                            onClick={handleAddCoding} 
+                                            className="bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-6 py-2.5 rounded-lg font-medium hover:bg-gray-800 transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                                        >
+                                            {isAddingQuestion ? 'Adding Question...' : 'Add Coding Question'}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -401,7 +690,13 @@ export default function AssessmentBuilder() {
                                             <span className="bg-primary/20 text-primary-dark dark:bg-primary/30 dark:text-primary px-2 py-0.5 rounded text-xs font-bold">{q.type}</span>
                                             <span className="text-sm font-medium text-gray-500">{q.marks} Marks</span>
                                         </div>
-                                        <p className="text-gray-800 dark:text-gray-200">{q.text}</p>
+                                        <p className="text-gray-800 dark:text-gray-200 font-medium">{q.text}</p>
+                                        {q.type === 'CODING' && q.codingDetails && (
+                                            <div className="mt-2 text-xs text-gray-500 space-y-1">
+                                                <p className="line-clamp-2 italic">{q.codingDetails.problemStatement}</p>
+                                                <p><span className="font-semibold text-gray-400">Test Cases:</span> {q.testCases?.length || 0} ({q.testCases?.filter((t: any) => t.hidden)?.length || 0} hidden)</p>
+                                            </div>
+                                        )}
                                     </div>
                                     {!assessmentData.publishedAt && (
                                         <button onClick={async () => {

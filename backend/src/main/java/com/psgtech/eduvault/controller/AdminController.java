@@ -135,7 +135,7 @@ public class AdminController {
         return ResponseEntity.ok(schoolClassService.create(request));
     }
 
-    @GetMapping("/school-classes")
+    @GetMapping({"/school-classes", "/classes"})
     public ResponseEntity<List<SchoolClassResponse>> getAllSchoolClasses() {
         return ResponseEntity.ok(schoolClassService.getAll());
     }

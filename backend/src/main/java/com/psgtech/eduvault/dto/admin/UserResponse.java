@@ -22,4 +22,11 @@ public class UserResponse {
     
     private Long schoolClassId;
     private String schoolClassName;
+
+    private int currentStreak;
+    private int highestStreak;
+    private java.time.LocalDate lastActiveDate;
+    private boolean activeToday;
+    private String streakStatus;
 }
+

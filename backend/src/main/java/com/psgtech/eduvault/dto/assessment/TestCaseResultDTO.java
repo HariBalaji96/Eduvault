@@ -12,6 +12,8 @@ import lombok.NoArgsConstructor;
 public class TestCaseResultDTO {
     private Long testCaseId;
     private boolean passed;
+    private String input;
+    private String expectedOutput;
     private String actualOutput;
     private String stderr;
     private boolean isHidden;

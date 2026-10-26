@@ -13,4 +13,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByRegistrationId(String registrationId);
     java.util.List<User> findByRegistrationIdIn(java.util.List<String> registrationIds);
+    java.util.List<User> findBySchoolClassAndRole(com.psgtech.eduvault.entity.SchoolClass schoolClass, com.psgtech.eduvault.entity.Role role);
 }

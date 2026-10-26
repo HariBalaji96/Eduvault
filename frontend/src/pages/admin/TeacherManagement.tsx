@@ -107,11 +107,25 @@ const TeacherManagement: React.FC = () => {
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
+                transformHeader: (header: string) => header.trim(),
                 complete: (results) => {
-                    const mappedData = results.data.map((row: any) => ({
-                        ...row,
-                        name: `${row.firstName || ''} ${row.lastName || ''}`.trim(),
-                    }));
+                    const mappedData = results.data.map((rawRow: any) => {
+                        const row: any = {};
+                        Object.keys(rawRow).forEach(key => {
+                            const trimmedKey = key.trim();
+                            const val = rawRow[key];
+                            row[trimmedKey] = typeof val === 'string' ? val.trim() : val;
+                        });
+
+                        const fullName = row.name || `${row.firstName || ''} ${row.lastName || ''}`.trim();
+                        return {
+                            ...row,
+                            name: fullName,
+                            email: row.email || '',
+                            password: row.password || '',
+                            registrationId: row.registrationId || row.teacherId || '',
+                        };
+                    });
                     setBulkData(mappedData);
                     setBulkReport(null);
                 }
@@ -259,9 +273,19 @@ const TeacherManagement: React.FC = () => {
                         {bulkData.length > 0 && (
                             <div className="mt-4">
                                 <p className="mb-2 text-sm font-medium">Preview ({bulkData.length} rows found):</p>
-                                <div className="max-h-40 overflow-auto border rounded p-2 text-sm">
-                                    {bulkData.slice(0, 3).map((r, i) => <div key={i}>{r.name} ({r.email})</div>)}
-                                    {bulkData.length > 3 && <div>...and {bulkData.length - 3} more</div>}
+                                <div className="max-h-48 overflow-auto border rounded divide-y dark:divide-zinc-700 p-2 text-sm">
+                                    {bulkData.slice(0, 5).map((r, i) => (
+                                        <div key={i} className="py-1.5 flex justify-between items-center text-xs">
+                                            <div>
+                                                <span className="font-semibold text-gray-900 dark:text-gray-100">{r.name || '(No name)'}</span>
+                                                <span className="text-gray-500 ml-2">&lt;{r.email || 'No email'}&gt;</span>
+                                            </div>
+                                            <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300">
+                                                ID: {r.registrationId || 'N/A'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {bulkData.length > 5 && <div className="pt-1.5 text-xs text-gray-500">...and {bulkData.length - 5} more rows</div>}
                                 </div>
                                 <button onClick={handleBulkSubmit} disabled={isUploading} className="mt-4 w-full bg-primary text-white p-2 rounded hover:bg-primary-dark disabled:opacity-50">
                                     {isUploading ? 'Uploading...' : 'Confirm Upload'}

@@ -3,7 +3,8 @@ import client from '../../api/client';
 import DataTable from '../../components/DataTable';
 import Modal from '../../components/Modal';
 import Papa from 'papaparse';
-import { Plus, Upload, CheckCircle2, XCircle, Edit2, Trash2, Power } from 'lucide-react';
+import { Plus, Upload, CheckCircle2, XCircle, Edit2, Trash2, Power, Flame } from 'lucide-react';
+
 
 interface Student {
     id: number;
@@ -15,6 +16,11 @@ interface Student {
     registrationId?: string;
     schoolClassId?: number;
     schoolClassName?: string;
+    currentStreak?: number;
+    highestStreak?: number;
+    lastActiveDate?: string;
+    activeToday?: boolean;
+    streakStatus?: string;
 }
 
 const StudentManagement: React.FC = () => {
@@ -126,11 +132,26 @@ const StudentManagement: React.FC = () => {
             Papa.parse(file, {
                 header: true,
                 skipEmptyLines: true,
+                transformHeader: (header: string) => header.trim(),
                 complete: (results) => {
-                    const mappedData = results.data.map((row: any) => ({
-                        ...row,
-                        name: `${row.firstName || ''} ${row.lastName || ''}`.trim(),
-                    }));
+                    const mappedData = results.data.map((rawRow: any) => {
+                        const row: any = {};
+                        Object.keys(rawRow).forEach(key => {
+                            const trimmedKey = key.trim();
+                            const val = rawRow[key];
+                            row[trimmedKey] = typeof val === 'string' ? val.trim() : val;
+                        });
+
+                        const fullName = row.name || `${row.firstName || ''} ${row.lastName || ''}`.trim();
+                        return {
+                            ...row,
+                            name: fullName,
+                            email: row.email || '',
+                            password: row.password || '',
+                            registrationId: row.registrationId || row.rollNo || row.studentId || '',
+                            schoolClassId: row.schoolClassId ? Number(row.schoolClassId) : null,
+                        };
+                    });
                     setBulkData(mappedData);
                     setBulkReport(null);
                 }
@@ -157,6 +178,33 @@ const StudentManagement: React.FC = () => {
         { header: 'Name', accessor: (row: Student) => `${row.firstName} ${row.lastName}`.trim() },
         { header: 'Email', accessor: 'email' as keyof Student },
         { header: 'Class', accessor: (row: Student) => row.schoolClassName || '-' },
+        { 
+            header: 'Daily Streak', 
+            accessor: (row: Student) => (
+                <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-1.5">
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                            row.activeToday 
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-300/40' 
+                                : (row.currentStreak && row.currentStreak > 0)
+                                    ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
+                                    : 'bg-gray-100 text-gray-500 dark:bg-zinc-800 dark:text-gray-400'
+                        }`}>
+                            <Flame size={12} className={row.currentStreak && row.currentStreak > 0 ? "text-amber-500 fill-amber-500" : "text-gray-400"} />
+                            <span>{row.currentStreak || 0} {row.currentStreak === 1 ? 'day' : 'days'}</span>
+                        </span>
+                        {row.activeToday && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" title="Executed code today" />
+                        )}
+                    </div>
+                    {row.highestStreak && row.highestStreak > 0 ? (
+                        <span className="text-[10px] text-gray-400 ml-1">
+                            Best: {row.highestStreak}d
+                        </span>
+                    ) : null}
+                </div>
+            ) 
+        },
 
         { header: 'Status', accessor: (row: Student) => (
             <span className={`px-2 py-1 text-xs rounded-full ${row.active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -304,9 +352,19 @@ const StudentManagement: React.FC = () => {
                         {bulkData.length > 0 && (
                             <div className="mt-4">
                                 <p className="mb-2 text-sm font-medium">Preview ({bulkData.length} rows found):</p>
-                                <div className="max-h-40 overflow-auto border rounded p-2 text-sm">
-                                    {bulkData.slice(0, 3).map((r, i) => <div key={i}>{r.name} ({r.email})</div>)}
-                                    {bulkData.length > 3 && <div>...and {bulkData.length - 3} more</div>}
+                                <div className="max-h-48 overflow-auto border rounded divide-y dark:divide-zinc-700 p-2 text-sm">
+                                    {bulkData.slice(0, 5).map((r, i) => (
+                                        <div key={i} className="py-1.5 flex justify-between items-center text-xs">
+                                            <div>
+                                                <span className="font-semibold text-gray-900 dark:text-gray-100">{r.name || '(No name)'}</span>
+                                                <span className="text-gray-500 ml-2">&lt;{r.email || 'No email'}&gt;</span>
+                                            </div>
+                                            <span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-gray-300">
+                                                Roll No: {r.registrationId || 'N/A'}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {bulkData.length > 5 && <div className="pt-1.5 text-xs text-gray-500">...and {bulkData.length - 5} more rows</div>}
                                 </div>
                                 <button onClick={handleBulkSubmit} disabled={isUploading} className="mt-4 w-full bg-primary text-white p-2 rounded hover:bg-primary-dark disabled:opacity-50">
                                     {isUploading ? 'Uploading...' : 'Confirm Upload'}

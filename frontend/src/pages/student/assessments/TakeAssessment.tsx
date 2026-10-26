@@ -207,15 +207,94 @@ export default function TakeAssessment() {
                             )}
 
                             {q.type === 'CODING' && (
-                                <div className="mt-6 h-[600px]">
-                                    <CodeEditor
-                                        mode="assessment"
-                                        questionId={q.id}
-                                        submissionId={submissionId!}
-                                        initialCode={answers[q.id]?.codeSubmitted || ''}
-                                        onRun={(code, language) => assessmentApi.runCode(submissionId!, q.id, { language, code })}
-                                        onSubmit={(code, language) => assessmentApi.submitCode(submissionId!, q.id, { language, code })}
-                                    />
+                                <div className="mt-6 space-y-6">
+                                    {q.codingDetails && (
+                                        <div className="bg-gray-50 dark:bg-gray-800/60 p-6 rounded-xl border border-gray-200 dark:border-gray-700/60 space-y-4">
+                                            {q.codingDetails.problemStatement && (
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Problem Statement</h4>
+                                                    <div className="text-gray-800 dark:text-gray-200 text-base leading-relaxed whitespace-pre-wrap">{q.codingDetails.problemStatement}</div>
+                                                </div>
+                                            )}
+
+                                            {q.codingDetails.inputDescription && (
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Input Format</h4>
+                                                    <div className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap">{q.codingDetails.inputDescription}</div>
+                                                </div>
+                                            )}
+
+                                            {q.codingDetails.outputDescription && (
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Output Format</h4>
+                                                    <div className="text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap">{q.codingDetails.outputDescription}</div>
+                                                </div>
+                                            )}
+
+                                            {q.codingDetails.constraints && (
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Constraints</h4>
+                                                    <div className="text-amber-700 dark:text-amber-400 font-mono text-xs bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20 whitespace-pre-wrap">{q.codingDetails.constraints}</div>
+                                                </div>
+                                            )}
+
+                                            {(q.codingDetails.sampleInput || q.codingDetails.sampleOutput) && (
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                                    {q.codingDetails.sampleInput && (
+                                                        <div>
+                                                            <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Sample Input</h4>
+                                                            <pre className="bg-zinc-900 text-emerald-400 p-3 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap">{q.codingDetails.sampleInput}</pre>
+                                                        </div>
+                                                    )}
+                                                    {q.codingDetails.sampleOutput && (
+                                                        <div>
+                                                            <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Sample Output</h4>
+                                                            <pre className="bg-zinc-900 text-blue-400 p-3 rounded-lg text-xs font-mono overflow-x-auto whitespace-pre-wrap">{q.codingDetails.sampleOutput}</pre>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            {q.sampleTestCases && q.sampleTestCases.length > 0 && (
+                                                <div className="pt-2">
+                                                    <h4 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Visible Test Cases ({q.sampleTestCases.length})</h4>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {q.sampleTestCases.map((tc: any, tcIdx: number) => (
+                                                            <div key={tcIdx} className="bg-white dark:bg-gray-900 p-3 rounded-lg border border-gray-200 dark:border-gray-700 text-xs font-mono">
+                                                                <div className="text-gray-400 font-semibold mb-1">Sample Case {tcIdx + 1}</div>
+                                                                <div className="text-gray-500">Input: <span className="text-gray-800 dark:text-gray-200">{tc.input || '<None>'}</span></div>
+                                                                <div className="text-gray-500">Expected: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{tc.expectedOutput}</span></div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    <div className="h-[660px] lg:h-[720px] rounded-xl overflow-hidden shadow-lg border border-zinc-800 flex flex-col">
+                                        <CodeEditor
+                                            mode="assessment"
+                                            questionId={q.id}
+                                            submissionId={submissionId!}
+                                            initialCode={answers[q.id]?.codeSubmitted || ''}
+                                            onChange={(val) => {
+                                                setAnswers(prev => ({ ...prev, [q.id]: { ...prev[q.id], codeSubmitted: val } }));
+                                            }}
+                                            onRun={async (code, language) => {
+                                                if (submissionId) {
+                                                    assessmentApi.saveAnswer(submissionId, q.id, { codeSubmitted: code }).catch(console.error);
+                                                }
+                                                return assessmentApi.runCode(submissionId!, q.id, { language, code });
+                                            }}
+                                            onSubmit={async (code, language) => {
+                                                if (submissionId) {
+                                                    assessmentApi.saveAnswer(submissionId, q.id, { codeSubmitted: code }).catch(console.error);
+                                                }
+                                                return assessmentApi.submitCode(submissionId!, q.id, { language, code });
+                                            }}
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>

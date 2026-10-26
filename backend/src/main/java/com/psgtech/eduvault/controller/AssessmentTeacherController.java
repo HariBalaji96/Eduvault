@@ -31,6 +31,11 @@ public class AssessmentTeacherController {
         return ResponseEntity.ok(assessmentTeacherService.addDescriptiveQuestion(id, dto, teacher));
     }
 
+    @PostMapping("/{id}/questions/coding")
+    public ResponseEntity<QuestionTeacherDTO> addCodingQuestion(@PathVariable Long id, @RequestBody CodingQuestionCreateDTO dto, @AuthenticationPrincipal(expression = "user") User teacher) {
+        return ResponseEntity.ok(assessmentTeacherService.addCodingQuestion(id, dto, teacher));
+    }
+
     @PutMapping("/questions/{id}")
     public ResponseEntity<QuestionTeacherDTO> updateQuestion(@PathVariable Long id, @RequestBody QuestionUpdateDTO dto, @AuthenticationPrincipal(expression = "user") User teacher) {
         return ResponseEntity.ok(assessmentTeacherService.updateQuestion(id, dto, teacher));

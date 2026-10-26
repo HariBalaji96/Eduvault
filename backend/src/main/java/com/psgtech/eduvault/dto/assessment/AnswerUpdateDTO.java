@@ -7,4 +7,5 @@ import java.util.List;
 public class AnswerUpdateDTO {
     private List<Long> mcqSelectedOptionIds;
     private String descriptiveText;
+    private String codeSubmitted;
 }

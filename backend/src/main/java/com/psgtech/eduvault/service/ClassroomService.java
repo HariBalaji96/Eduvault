@@ -21,11 +21,15 @@ public class ClassroomService {
     private final AssignmentSubmissionRepository assignmentSubmissionRepository;
     private final UserRepository userRepository;
     private final SchoolClassRepository schoolClassRepository;
+    private final com.psgtech.eduvault.repository.StudentStreakRepository studentStreakRepository;
+    private final EmailNotificationService emailNotificationService;
 
     public ClassroomService(ClassroomRepository classroomRepository, ClassroomTeacherRepository classroomTeacherRepository,
                             ClassroomStudentRepository classroomStudentRepository, ClassroomPostRepository classroomPostRepository,
                             AssignmentSubmissionRepository assignmentSubmissionRepository,
-                            UserRepository userRepository, SchoolClassRepository schoolClassRepository) {
+                            UserRepository userRepository, SchoolClassRepository schoolClassRepository,
+                            com.psgtech.eduvault.repository.StudentStreakRepository studentStreakRepository,
+                            EmailNotificationService emailNotificationService) {
         this.classroomRepository = classroomRepository;
         this.classroomTeacherRepository = classroomTeacherRepository;
         this.classroomStudentRepository = classroomStudentRepository;
@@ -33,6 +37,8 @@ public class ClassroomService {
         this.assignmentSubmissionRepository = assignmentSubmissionRepository;
         this.userRepository = userRepository;
         this.schoolClassRepository = schoolClassRepository;
+        this.studentStreakRepository = studentStreakRepository;
+        this.emailNotificationService = emailNotificationService;
     }
 
     private User getUserByEmail(String email) {
@@ -71,9 +77,11 @@ public class ClassroomService {
         classroom.setName(request.getName());
         classroom.setSubject(request.getSubject());
         
-        SchoolClass schoolClass = schoolClassRepository.findById(request.getSchoolClassId())
-                .orElseThrow(() -> new IllegalArgumentException("School Class not found"));
-        classroom.setSchoolClass(schoolClass);
+        if (request.getSchoolClassId() != null) {
+            SchoolClass schoolClass = schoolClassRepository.findById(request.getSchoolClassId())
+                    .orElse(null);
+            classroom.setSchoolClass(schoolClass);
+        }
         
         classroom.setDescription(request.getDescription());
         classroom.setCreatedBy(teacher);
@@ -208,6 +216,7 @@ public class ClassroomService {
         post.setDueDate(request.getDueDate());
         post.setAttachmentUrl(request.getAttachmentUrl());
         post = classroomPostRepository.save(post);
+        emailNotificationService.notifyStudentsNewPost(post);
         return mapToPostResponse(post);
     }
 
@@ -348,6 +357,36 @@ public class ClassroomService {
         int spaceIdx = fullName.indexOf(' ');
         String firstName = spaceIdx > 0 ? fullName.substring(0, spaceIdx) : fullName;
         String lastName = spaceIdx > 0 ? fullName.substring(spaceIdx + 1) : "";
+
+        java.time.LocalDate today = java.time.LocalDate.now();
+        int currentStreak = 0;
+        int highestStreak = 0;
+        java.time.LocalDate lastActiveDate = null;
+        boolean activeToday = false;
+        String streakStatus = "INACTIVE";
+
+        var streakOpt = studentStreakRepository.findByStudentId(user.getId());
+        if (streakOpt.isPresent()) {
+            var streak = streakOpt.get();
+            highestStreak = streak.getHighestStreak();
+            lastActiveDate = streak.getLastActiveDate();
+
+            if (lastActiveDate != null) {
+                if (lastActiveDate.isEqual(today)) {
+                    currentStreak = streak.getCurrentStreak();
+                    activeToday = true;
+                    streakStatus = "ACTIVE";
+                } else if (lastActiveDate.isEqual(today.minusDays(1))) {
+                    currentStreak = streak.getCurrentStreak();
+                    activeToday = false;
+                    streakStatus = "AT_RISK";
+                } else {
+                    currentStreak = 0;
+                    streakStatus = "BROKEN";
+                }
+            }
+        }
+
         return UserResponse.builder()
                 .id(user.getId())
                 .firstName(firstName)
@@ -356,6 +395,12 @@ public class ClassroomService {
                 .role(user.getRole())
                 .active(user.isActive())
                 .createdAt(user.getCreatedAt())
+                .registrationId(user.getRegistrationId())
+                .currentStreak(currentStreak)
+                .highestStreak(highestStreak)
+                .lastActiveDate(lastActiveDate)
+                .activeToday(activeToday)
+                .streakStatus(streakStatus)
                 .build();
     }
 

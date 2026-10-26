@@ -17,6 +17,22 @@ export const assessmentApi = {
     return response.data;
   },
 
+  addCodingQuestion: async (assessmentId: number, data: {
+    text: string;
+    marks: number;
+    problemStatement: string;
+    inputDescription?: string;
+    outputDescription?: string;
+    constraints?: string;
+    sampleInput?: string;
+    sampleOutput?: string;
+    allowedLanguage?: string;
+    testCases: { input: string; expectedOutput: string; hidden: boolean }[];
+  }) => {
+    const response = await api.post(`/teacher/assessments/${assessmentId}/questions/coding`, data);
+    return response.data;
+  },
+
   updateQuestion: async (questionId: number, data: { text: string; marks: number }) => {
     const response = await api.put(`/teacher/assessments/questions/${questionId}`, data);
     return response.data;
@@ -78,7 +94,7 @@ export const assessmentApi = {
     return response.data; // returns submissionId
   },
 
-  saveAnswer: async (submissionId: number, questionId: number, data: { mcqSelectedOptionIds?: number[] | null; descriptiveText?: string | null }) => {
+  saveAnswer: async (submissionId: number, questionId: number, data: { mcqSelectedOptionIds?: number[] | null; descriptiveText?: string | null; codeSubmitted?: string | null }) => {
     const response = await api.put(`/student/submissions/${submissionId}/answers/${questionId}`, data);
     return response.data;
   },
