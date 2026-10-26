@@ -1,0 +1,12 @@
+# Local development configuration template
+# Copy this file to 'application-local.yml' and populate with your own credentials.
+# 'application-local.yml' is ignored by .gitignore and should NEVER be committed to Git.
+
+gemini:
+  api:
+    key: "YOUR_GEMINI_OR_GROQ_API_KEY"
+
+spring:
+  mail:
+    username: "your-email@gmail.com"
+    password: "your-google-app-password"
